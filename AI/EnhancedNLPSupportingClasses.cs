@@ -152,6 +152,224 @@ namespace RhinoAI.AI
                         Description = "Creates an array of boxes",
                         Keywords = new[] { "array of boxes", "multiple boxes", "box array", "boxes array", "grid of boxes" }
                     }
+                },
+                
+                // ADVANCED GEOMETRY
+                ["create_torus"] = new IntentPattern
+                {
+                    Category = IntentCategory.DirectCommand,
+                    Keywords = new[] { "create", "torus", "donut", "ring" },
+                    Template = new CommandTemplate
+                    {
+                        CommandName = "CreateTorus",
+                        Parameters = new[] { "center", "major_radius", "minor_radius", "color", "name" },
+                        Description = "Creates a torus (donut shape)",
+                        Keywords = new[] { "torus", "donut", "ring" }
+                    }
+                },
+                ["create_cone"] = new IntentPattern
+                {
+                    Category = IntentCategory.DirectCommand,
+                    Keywords = new[] { "create", "cone", "pyramid", "triangular" },
+                    Template = new CommandTemplate
+                    {
+                        CommandName = "CreateCone",
+                        Parameters = new[] { "center", "radius", "height", "color", "name" },
+                        Description = "Creates a cone",
+                        Keywords = new[] { "cone", "pyramid", "triangular" }
+                    }
+                },
+                
+                // CURVES
+                ["create_line"] = new IntentPattern
+                {
+                    Category = IntentCategory.DirectCommand,
+                    Keywords = new[] { "create", "line", "straight", "segment" },
+                    Template = new CommandTemplate
+                    {
+                        CommandName = "CreateLine",
+                        Parameters = new[] { "start", "end", "color", "name" },
+                        Description = "Creates a line",
+                        Keywords = new[] { "line", "straight", "segment" }
+                    }
+                },
+                ["create_circle"] = new IntentPattern
+                {
+                    Category = IntentCategory.DirectCommand,
+                    Keywords = new[] { "create", "circle", "round", "circular" },
+                    Template = new CommandTemplate
+                    {
+                        CommandName = "CreateCircle",
+                        Parameters = new[] { "center", "radius", "color", "name" },
+                        Description = "Creates a circle",
+                        Keywords = new[] { "circle", "round", "circular" }
+                    }
+                },
+                ["create_arc"] = new IntentPattern
+                {
+                    Category = IntentCategory.DirectCommand,
+                    Keywords = new[] { "create", "arc", "curved", "partial" },
+                    Template = new CommandTemplate
+                    {
+                        CommandName = "CreateArc",
+                        Parameters = new[] { "center", "radius", "start_angle", "end_angle", "color", "name" },
+                        Description = "Creates an arc",
+                        Keywords = new[] { "arc", "curved", "partial" }
+                    }
+                },
+                ["create_polyline"] = new IntentPattern
+                {
+                    Category = IntentCategory.DirectCommand,
+                    Keywords = new[] { "create", "polyline", "connected", "segments" },
+                    Template = new CommandTemplate
+                    {
+                        CommandName = "CreatePolyline",
+                        Parameters = new[] { "points", "color", "name" },
+                        Description = "Creates a polyline",
+                        Keywords = new[] { "polyline", "connected", "segments" }
+                    }
+                },
+                
+                // ARRAYS
+                ["create_circular_array"] = new IntentPattern
+                {
+                    Category = IntentCategory.ComplexOperation,
+                    Keywords = new[] { "circular", "array", "around", "center", "radial", "polar" },
+                    Template = new CommandTemplate
+                    {
+                        CommandName = "CreateCircularArray",
+                        Parameters = new[] { "center", "radius", "count" },
+                        Description = "Creates a circular array of selected objects",
+                        Keywords = new[] { "circular array", "radial array", "polar array", "around center" }
+                    }
+                },
+                
+                // TRANSFORMATIONS
+                ["rotate_objects"] = new IntentPattern
+                {
+                    Category = IntentCategory.Modification,
+                    Keywords = new[] { "rotate", "turn", "spin", "angle" },
+                    Template = new CommandTemplate
+                    {
+                        CommandName = "RotateObjects",
+                        Parameters = new[] { "angle", "axis", "center" },
+                        Description = "Rotates selected objects",
+                        Keywords = new[] { "rotate", "turn", "spin" }
+                    }
+                },
+                ["mirror_objects"] = new IntentPattern
+                {
+                    Category = IntentCategory.Modification,
+                    Keywords = new[] { "mirror", "reflect", "flip", "symmetry" },
+                    Template = new CommandTemplate
+                    {
+                        CommandName = "MirrorObjects",
+                        Parameters = new[] { "plane_origin", "plane_normal" },
+                        Description = "Mirrors selected objects",
+                        Keywords = new[] { "mirror", "reflect", "flip" }
+                    }
+                },
+                ["copy_objects"] = new IntentPattern
+                {
+                    Category = IntentCategory.Modification,
+                    Keywords = new[] { "copy", "duplicate", "clone" },
+                    Template = new CommandTemplate
+                    {
+                        CommandName = "CopyObjects",
+                        Parameters = new[] { "translation", "copies" },
+                        Description = "Copies selected objects",
+                        Keywords = new[] { "copy", "duplicate", "clone" }
+                    }
+                },
+                
+                // BOOLEAN OPERATIONS
+                ["boolean_union"] = new IntentPattern
+                {
+                    Category = IntentCategory.ComplexOperation,
+                    Keywords = new[] { "union", "combine", "merge", "join" },
+                    Template = new CommandTemplate
+                    {
+                        CommandName = "BooleanUnion",
+                        Parameters = new[] { "objects" },
+                        Description = "Combines selected objects",
+                        Keywords = new[] { "union", "combine", "merge" }
+                    }
+                },
+                ["boolean_difference"] = new IntentPattern
+                {
+                    Category = IntentCategory.ComplexOperation,
+                    Keywords = new[] { "subtract", "difference", "cut", "remove" },
+                    Template = new CommandTemplate
+                    {
+                        CommandName = "BooleanDifference",
+                        Parameters = new[] { "objects" },
+                        Description = "Subtracts objects from each other",
+                        Keywords = new[] { "subtract", "difference", "cut" }
+                    }
+                },
+                ["boolean_intersection"] = new IntentPattern
+                {
+                    Category = IntentCategory.ComplexOperation,
+                    Keywords = new[] { "intersect", "intersection", "overlap", "common" },
+                    Template = new CommandTemplate
+                    {
+                        CommandName = "BooleanIntersection",
+                        Parameters = new[] { "objects" },
+                        Description = "Creates intersection of objects",
+                        Keywords = new[] { "intersect", "intersection", "overlap" }
+                    }
+                },
+                
+                // MODIFICATIONS
+                ["fillet_edges"] = new IntentPattern
+                {
+                    Category = IntentCategory.Modification,
+                    Keywords = new[] { "fillet", "round", "smooth", "edges" },
+                    Template = new CommandTemplate
+                    {
+                        CommandName = "FilletEdges",
+                        Parameters = new[] { "radius" },
+                        Description = "Rounds edges of selected objects",
+                        Keywords = new[] { "fillet", "round", "smooth edges" }
+                    }
+                },
+                ["chamfer_edges"] = new IntentPattern
+                {
+                    Category = IntentCategory.Modification,
+                    Keywords = new[] { "chamfer", "bevel", "cut", "edges" },
+                    Template = new CommandTemplate
+                    {
+                        CommandName = "ChamferEdges",
+                        Parameters = new[] { "distance" },
+                        Description = "Bevels edges of selected objects",
+                        Keywords = new[] { "chamfer", "bevel", "cut edges" }
+                    }
+                },
+                
+                // OBJECT OPERATIONS
+                ["explode_objects"] = new IntentPattern
+                {
+                    Category = IntentCategory.Modification,
+                    Keywords = new[] { "explode", "break", "separate", "split" },
+                    Template = new CommandTemplate
+                    {
+                        CommandName = "ExplodeObjects",
+                        Parameters = new[] { "objects" },
+                        Description = "Explodes selected objects",
+                        Keywords = new[] { "explode", "break", "separate" }
+                    }
+                },
+                ["join_objects"] = new IntentPattern
+                {
+                    Category = IntentCategory.Modification,
+                    Keywords = new[] { "join", "connect", "weld", "unite" },
+                    Template = new CommandTemplate
+                    {
+                        CommandName = "JoinObjects",
+                        Parameters = new[] { "objects" },
+                        Description = "Joins selected objects",
+                        Keywords = new[] { "join", "connect", "weld" }
+                    }
                 }
             };
         }
