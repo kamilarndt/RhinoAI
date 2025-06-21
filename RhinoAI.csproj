@@ -11,6 +11,7 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <LangVersion>11.0</LangVersion>
     <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+    <EnableDefaultItems>false</EnableDefaultItems>
     
     <RootNamespace>RhinoAI</RootNamespace>
     <AssemblyName>RhinoAI</AssemblyName>
@@ -18,6 +19,14 @@
     <Company>RhinoAI Development</Company>
     <Product>RhinoAI</Product>
     <Copyright>Copyright © RhinoAI Development 2024</Copyright>
+    
+    <!-- Repository Information -->
+    <RepositoryUrl>https://github.com/yourusername/rhinoai</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    
+    <!-- Suppress platform-specific warnings for Windows-only plugin -->
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
   </PropertyGroup>
 
   <!-- Debug Configuration -->
@@ -44,27 +53,52 @@
   <ItemGroup>
     <PackageReference Include="RhinoCommon" Version="8.0.23304.09001" />
     <PackageReference Include="Grasshopper" Version="8.0.23304.09001" />
-    <PackageReference Include="System.Text.Json" Version="7.0.0" />
+    <!-- Updated to fix security vulnerability -->
+    <PackageReference Include="System.Text.Json" Version="8.0.0" />
 
-    <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0" />
-    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="7.0.0" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+    
+    <!-- Additional packages for AI integration -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
-  <!-- Embedded Resources -->
+  <!-- Explicitly include source files -->
   <ItemGroup>
-    <EmbeddedResource Include="**/*.ico" />
-    <EmbeddedResource Include="**/*.png" />
-    <EmbeddedResource Include="**/*.jpg" />
-    <EmbeddedResource Include="**/*.xaml" />
-    <EmbeddedResource Include="**/*.resx" />
+    <Compile Include="RhinoAIPlugin.cs" />
+    <Compile Include="AI\*.cs" />
+    <Compile Include="Core\*.cs" />
+    <Compile Include="Integration\*.cs" />
+    <Compile Include="Models\*.cs" />
+    <Compile Include="Properties\*.cs" />
+    <Compile Include="UI\**\*.cs" />
+    <Compile Include="Utils\*.cs" />
+  </ItemGroup>
+
+  <!-- Specific Embedded Resources - Only include what we need -->
+  <ItemGroup>
+    <EmbeddedResource Include="Properties\*.resx" />
+  </ItemGroup>
+
+  <!-- Explicitly exclude .ico files to prevent automatic inclusion -->
+  <ItemGroup>
+    <EmbeddedResource Remove="**\*.ico" />
+    <None Include="EmbeddedResources\*.ico" />
   </ItemGroup>
 
   <!-- Exclude Resources folder from compilation -->
   <ItemGroup>
-    <Compile Remove="Resources/**" />
     <None Include="Resources/**" />
+    <None Include="manifest.yml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="README.md" />
+    <None Include="CHANGELOG.md" />
+    <None Include="LICENSE" />
+    <None Include=".gitignore" />
   </ItemGroup>
 
   <!-- Create .rhp file from .dll -->

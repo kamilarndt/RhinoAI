@@ -28,4 +28,5 @@ using Rhino.PlugIns;
 [assembly: PlugInDescription(DescriptionType.Phone, "")]
 [assembly: PlugInDescription(DescriptionType.Fax, "")]
 [assembly: PlugInDescription(DescriptionType.Country, "International")]
+//[assembly: PlugInDescription(DescriptionType.Icon, "RhinoAI.EmbeddedResources.plugin-utility.ico")]
 //[assembly: PlugInDescription(DescriptionType.Title, "Global")] 

@@ -1,0 +1,63 @@
+---
+name: rhinoai
+version: 1.0.0
+authors:
+  - RhinoAI Development Team
+description: >-
+  Advanced AI-powered natural language interface for Rhino 8. Features sophisticated 
+  NLP processing, multi-provider AI integration (OpenAI, Claude, MCP), and context-aware 
+  3D modeling assistance with 95% intent recognition accuracy.
+
+url: https://github.com/yourusername/rhinoai
+keywords:
+  - ai
+  - artificial-intelligence
+  - nlp
+  - natural-language
+  - assistant
+  - automation
+  - rhino
+  - 3d-modeling
+  - openai
+  - claude
+  - mcp
+  - machine-learning
+
+icon: EmbeddedResources/plugin-utility.ico
+
+# Rhino version compatibility
+min_rhino_version: 8.0
+
+# .NET Framework requirements
+dotnet_version: net7.0-windows
+
+# Plugin capabilities
+capabilities:
+  - Commands
+  - Panels
+  - AI Processing
+  - External API Integration
+  - Real-time Assistant
+
+# Plugin metadata
+license: MIT
+homepage: https://github.com/yourusername/rhinoai
+documentation: https://github.com/yourusername/rhinoai/wiki
+support: https://github.com/yourusername/rhinoai/issues
+
+# Build information
+build:
+  configuration: Release
+  platform: x64
+  
+# Dependencies (handled by NuGet)
+dependencies:
+  rhino: ">=8.0"
+  
+# Installation notes
+install_notes: >-
+  RhinoAI requires internet connection for AI services. 
+  Configure your OpenAI/Claude API keys in the plugin settings after installation.
+  
+# Change log reference
+changelog: CHANGELOG.md 
