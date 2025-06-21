@@ -128,6 +128,30 @@ namespace RhinoAI.AI
                         Description = "Scales selected objects",
                         Keywords = new[] { "scale", "resize", "size" }
                     }
+                },
+                ["create_sphere_array"] = new IntentPattern
+                {
+                    Category = IntentCategory.ComplexOperation,
+                    Keywords = new[] { "array", "spheres", "multiple", "grid", "3x3", "row", "column" },
+                    Template = new CommandTemplate
+                    {
+                        CommandName = "CreateSphereArray",
+                        Parameters = new[] { "center", "radius", "rows", "columns", "spacing", "color", "name" },
+                        Description = "Creates an array of spheres",
+                        Keywords = new[] { "array of spheres", "multiple spheres", "sphere array", "spheres array", "3x3 spheres", "grid of spheres" }
+                    }
+                },
+                ["create_box_array"] = new IntentPattern
+                {
+                    Category = IntentCategory.ComplexOperation,
+                    Keywords = new[] { "array", "boxes", "multiple", "grid", "3x3", "row", "column" },
+                    Template = new CommandTemplate
+                    {
+                        CommandName = "CreateBoxArray",
+                        Parameters = new[] { "center", "dimensions", "rows", "columns", "spacing", "color", "name" },
+                        Description = "Creates an array of boxes",
+                        Keywords = new[] { "array of boxes", "multiple boxes", "box array", "boxes array", "grid of boxes" }
+                    }
                 }
             };
         }
@@ -261,6 +285,9 @@ namespace RhinoAI.AI
                 "scale" => ExtractScale(input),
                 "material" => ExtractMaterial(input),
                 "layer" => ExtractLayer(input),
+                "rows" => ExtractRows(input),
+                "columns" => ExtractColumns(input),
+                "spacing" => ExtractSpacing(input),
                 _ => null
             });
         }
@@ -426,6 +453,63 @@ namespace RhinoAI.AI
             return null;
         }
 
+        private int? ExtractRows(string input)
+        {
+            // Extract from patterns like "3x3", "5x4", "array of 3x3"
+            var arrayMatch = Regex.Match(input, @"(\d+)\s*x\s*(\d+)", RegexOptions.IgnoreCase);
+            if (arrayMatch.Success)
+            {
+                return int.Parse(arrayMatch.Groups[1].Value); // First number is rows
+            }
+
+            // Extract from patterns like "3 rows"
+            var rowsMatch = Regex.Match(input, @"(\d+)\s*rows?", RegexOptions.IgnoreCase);
+            if (rowsMatch.Success)
+            {
+                return int.Parse(rowsMatch.Groups[1].Value);
+            }
+
+            return null;
+        }
+
+        private int? ExtractColumns(string input)
+        {
+            // Extract from patterns like "3x3", "5x4", "array of 3x3"
+            var arrayMatch = Regex.Match(input, @"(\d+)\s*x\s*(\d+)", RegexOptions.IgnoreCase);
+            if (arrayMatch.Success)
+            {
+                return int.Parse(arrayMatch.Groups[2].Value); // Second number is columns
+            }
+
+            // Extract from patterns like "4 columns"
+            var columnsMatch = Regex.Match(input, @"(\d+)\s*columns?", RegexOptions.IgnoreCase);
+            if (columnsMatch.Success)
+            {
+                return int.Parse(columnsMatch.Groups[1].Value);
+            }
+
+            return null;
+        }
+
+        private double? ExtractSpacing(string input)
+        {
+            // Extract from patterns like "spacing 5", "spaced 3 units apart"
+            var spacingMatch = Regex.Match(input, @"(?:spacing|spaced?)\s*(?:of|=|:)?\s*(\d+(?:\.\d+)?)", RegexOptions.IgnoreCase);
+            if (spacingMatch.Success)
+            {
+                return double.Parse(spacingMatch.Groups[1].Value);
+            }
+
+            // Extract from patterns like "3 units apart"
+            var apartMatch = Regex.Match(input, @"(\d+(?:\.\d+)?)\s*units?\s*apart", RegexOptions.IgnoreCase);
+            if (apartMatch.Success)
+            {
+                return double.Parse(apartMatch.Groups[1].Value);
+            }
+
+            return null;
+        }
+
         public Point3d GetPoint3d(Dictionary<string, object> parameters, string key, Point3d defaultValue)
         {
             if (parameters.TryGetValue(key, out var value))
@@ -451,6 +535,17 @@ namespace RhinoAI.AI
         public string GetString(Dictionary<string, object> parameters, string key, string defaultValue)
         {
             return parameters.TryGetValue(key, out var value) ? value?.ToString() ?? defaultValue : defaultValue;
+        }
+
+        public int GetInt(Dictionary<string, object> parameters, string key, int defaultValue)
+        {
+            if (parameters.TryGetValue(key, out var value))
+            {
+                if (value is int intValue) return intValue;
+                if (value is double doubleValue) return (int)doubleValue;
+                if (value is string strValue && int.TryParse(strValue, out var parsedValue)) return parsedValue;
+            }
+            return defaultValue;
         }
 
         private Dictionary<string, Func<string, object>> InitializeExtractors()

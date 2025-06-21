@@ -107,6 +107,8 @@ namespace RhinoAI.AI
                 "CreateSphere" => await CreateSphereAsync(parameters),
                 "CreateBox" => await CreateBoxAsync(parameters),
                 "CreateCylinder" => await CreateCylinderAsync(parameters),
+                "CreateSphereArray" => await CreateSphereArrayAsync(parameters),
+                "CreateBoxArray" => await CreateBoxArrayAsync(parameters),
                 "MoveObjects" => await MoveObjectsAsync(parameters),
                 "ScaleObjects" => await ScaleObjectsAsync(parameters),
                 "BooleanUnion" => await BooleanUnionAsync(parameters),
@@ -119,6 +121,165 @@ namespace RhinoAI.AI
         }
 
         #region Command Implementations
+
+        private Task<ProcessingResult> CreateSphereArrayAsync(Dictionary<string, object> parameters)
+        {
+            try
+            {
+                var center = _parameterExtractor.GetPoint3d(parameters, "center", Point3d.Origin);
+                var radius = _parameterExtractor.GetDouble(parameters, "radius", 1.0);
+                var rows = _parameterExtractor.GetInt(parameters, "rows", 3);
+                var columns = _parameterExtractor.GetInt(parameters, "columns", 3);
+                var spacing = _parameterExtractor.GetDouble(parameters, "spacing", radius * 3);
+                var name = _parameterExtractor.GetString(parameters, "name", "");
+                var color = GetColorParameter(parameters, "color");
+
+                var createdCount = 0;
+                var createdIds = new List<Guid>();
+
+                for (int row = 0; row < rows; row++)
+                {
+                    for (int col = 0; col < columns; col++)
+                    {
+                        var sphereCenter = new Point3d(
+                            center.X + col * spacing,
+                            center.Y + row * spacing,
+                            center.Z
+                        );
+
+                        var sphere = new Sphere(sphereCenter, radius);
+                        var brep = sphere.ToBrep();
+
+                        if (brep?.IsValid == true)
+                        {
+                            var attributes = new ObjectAttributes();
+                            
+                            if (color.HasValue)
+                            {
+                                attributes.ObjectColor = color.Value;
+                                attributes.ColorSource = ObjectColorSource.ColorFromObject;
+                            }
+
+                            if (!string.IsNullOrEmpty(name))
+                            {
+                                attributes.Name = $"{name}_sphere_{row}_{col}";
+                            }
+
+                            var id = RhinoDoc.ActiveDoc.Objects.AddBrep(brep, attributes);
+                            
+                            if (id != Guid.Empty)
+                            {
+                                createdIds.Add(id);
+                                createdCount++;
+                                _currentContext.AddCreatedObject(id, "Sphere", parameters);
+                            }
+                        }
+                    }
+                }
+
+                if (createdCount > 0)
+                {
+                    // Select all created spheres
+                    foreach (var id in createdIds)
+                    {
+                        RhinoDoc.ActiveDoc.Objects.Select(id);
+                    }
+                    RhinoDoc.ActiveDoc.Views.Redraw();
+
+                    var colorName = color.HasValue ? GetColorName(color.Value) : "default";
+                    return Task.FromResult(ProcessingResult.Success($"Created {createdCount} spheres in {colorName} in a {rows}x{columns} array with radius {radius:F2} and spacing {spacing:F2}"));
+                }
+
+                return Task.FromResult(ProcessingResult.Error("Failed to create sphere array"));
+            }
+            catch (Exception ex)
+            {
+                return Task.FromResult(ProcessingResult.Error($"Error creating sphere array: {ex.Message}"));
+            }
+        }
+
+        private Task<ProcessingResult> CreateBoxArrayAsync(Dictionary<string, object> parameters)
+        {
+            try
+            {
+                var center = _parameterExtractor.GetPoint3d(parameters, "center", Point3d.Origin);
+                var dimensions = GetVector3dParameter(parameters, "dimensions", new Vector3d(1, 1, 1));
+                var rows = _parameterExtractor.GetInt(parameters, "rows", 3);
+                var columns = _parameterExtractor.GetInt(parameters, "columns", 3);
+                var spacing = _parameterExtractor.GetDouble(parameters, "spacing", Math.Max(dimensions.X, dimensions.Y) * 2);
+                var name = _parameterExtractor.GetString(parameters, "name", "");
+                var color = GetColorParameter(parameters, "color");
+
+                var createdCount = 0;
+                var createdIds = new List<Guid>();
+
+                for (int row = 0; row < rows; row++)
+                {
+                    for (int col = 0; col < columns; col++)
+                    {
+                        var boxCenter = new Point3d(
+                            center.X + col * spacing,
+                            center.Y + row * spacing,
+                            center.Z
+                        );
+
+                        var box = new Box(Plane.WorldXY, new Interval(-dimensions.X/2, dimensions.X/2),
+                                         new Interval(-dimensions.Y/2, dimensions.Y/2),
+                                         new Interval(-dimensions.Z/2, dimensions.Z/2));
+                        
+                        // Translate to position
+                        var transform = Transform.Translation(boxCenter - Point3d.Origin);
+                        box.Transform(transform);
+                        
+                        var brep = box.ToBrep();
+
+                        if (brep?.IsValid == true)
+                        {
+                            var attributes = new ObjectAttributes();
+                            
+                            if (color.HasValue)
+                            {
+                                attributes.ObjectColor = color.Value;
+                                attributes.ColorSource = ObjectColorSource.ColorFromObject;
+                            }
+
+                            if (!string.IsNullOrEmpty(name))
+                            {
+                                attributes.Name = $"{name}_box_{row}_{col}";
+                            }
+
+                            var id = RhinoDoc.ActiveDoc.Objects.AddBrep(brep, attributes);
+                            
+                            if (id != Guid.Empty)
+                            {
+                                createdIds.Add(id);
+                                createdCount++;
+                                _currentContext.AddCreatedObject(id, "Box", parameters);
+                            }
+                        }
+                    }
+                }
+
+                if (createdCount > 0)
+                {
+                    // Select all created boxes
+                    foreach (var id in createdIds)
+                    {
+                        RhinoDoc.ActiveDoc.Objects.Select(id);
+                    }
+                    RhinoDoc.ActiveDoc.Views.Redraw();
+
+                    var colorName = color.HasValue ? GetColorName(color.Value) : "default";
+                    return Task.FromResult(ProcessingResult.Success($"Created {createdCount} boxes in {colorName} in a {rows}x{columns} array with dimensions {dimensions.X:F1}x{dimensions.Y:F1}x{dimensions.Z:F1} and spacing {spacing:F2}"));
+                }
+
+                return Task.FromResult(ProcessingResult.Error("Failed to create box array"));
+            }
+            catch (Exception ex)
+            {
+                return Task.FromResult(ProcessingResult.Error($"Error creating box array: {ex.Message}"));
+            }
+        }
 
         private Task<ProcessingResult> CreateSphereAsync(Dictionary<string, object> parameters)
         {

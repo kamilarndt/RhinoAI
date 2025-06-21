@@ -34,7 +34,7 @@ namespace RhinoAI.Commands
                 var gs = new Rhino.Input.Custom.GetString();
                 gs.SetCommandPrompt("Enter your command in natural language");
                 gs.AcceptNothing(false);
-                var result = gs.Get();
+                var result = gs.GetLiteralString();
                 if (result != Rhino.Input.GetResult.String)
                 {
                     return Result.Cancel;

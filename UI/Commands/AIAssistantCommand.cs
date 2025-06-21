@@ -68,7 +68,7 @@ namespace RhinoAI.UI.Commands
                 gs.SetCommandPrompt("Enter your modeling request or question");
                 gs.AcceptNothing(false);
                 
-                var result = gs.Get();
+                var result = gs.GetLiteralString();
                 if (result != GetResult.String)
                     return Result.Cancel;
 

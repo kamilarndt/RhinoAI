@@ -37,17 +37,16 @@ namespace RhinoAI.Commands
 
                 while (true)
                 {
-                    var getString = new GetString();
-                    getString.SetCommandPrompt("Enter natural language command (or 'exit' to quit)");
-                    getString.AcceptNothing(false);
+                    // Use StringBox to completely bypass Rhino's command interpretation
+                    string command = "";
+                    bool result = Rhino.UI.Dialogs.ShowEditBox(
+                        "RhinoAI Interactive", 
+                        "Enter natural language command (or 'exit' to quit):", 
+                        "", 
+                        false,
+                        out command);
                     
-                    // Use GetLiteralString() to allow spaces in the input
-                    var result = getString.GetLiteralString();
-                    if (result != Rhino.Input.GetResult.String)
-                        break;
-
-                    var command = getString.StringResult();
-                    if (string.IsNullOrWhiteSpace(command) || command.ToLower() == "exit")
+                    if (!result || string.IsNullOrWhiteSpace(command) || command.ToLower() == "exit")
                         break;
 
                     // Execute the command
