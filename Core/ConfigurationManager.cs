@@ -58,7 +58,7 @@ namespace RhinoAI.Core
 
             // Add default settings
             var defaultSettings = GetDefaultSettings();
-            builder.AddInMemoryCollection(defaultSettings);
+            builder.AddInMemoryCollection((IEnumerable<KeyValuePair<string, string?>>)defaultSettings);
 
             // Add configuration file if it exists
             if (File.Exists(_configPath))
@@ -84,6 +84,10 @@ namespace RhinoAI.Core
                 // Claude Settings  
                 ["Claude:Model"] = "claude-3-sonnet-20240229",
                 ["Claude:MaxTokens"] = "4000",
+                
+                // Ollama Settings
+                ["OllamaUrl"] = "http://localhost:11434",
+                ["OllamaModel"] = "llama3.1:8b",
                 
                 // MCP Settings
                 ["MCP:ServerUrl"] = "http://localhost:5005/",

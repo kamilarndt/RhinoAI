@@ -26,11 +26,16 @@ namespace RhinoAI.Core
         public MCPServer MCPServer { get; private set; }
         public OpenAIClient OpenAIClient { get; private set; }
         public ClaudeClient ClaudeClient { get; private set; }
+        public OllamaClient OllamaClient { get; private set; }
         public MCPClient MCPClient { get; private set; }
         
         // Core Components
         private ContextManager _contextManager;
         private SuggestionEngine _suggestionEngine;
+
+        // Configuration access
+        public ConfigurationManager Config => _configManager;
+        public ConfigurationManager ConfigurationManager => _configManager;
 
         public AIManager(ConfigurationManager configManager, SimpleLogger logger)
         {
@@ -60,6 +65,7 @@ namespace RhinoAI.Core
                 // Initialize clients
                 OpenAIClient = new OpenAIClient(_configManager, _logger);
                 ClaudeClient = new ClaudeClient(_configManager, _logger);
+                OllamaClient = new OllamaClient(_configManager, _logger);
                 
                 // Initialize AI processors
                 NlpProcessor = new NLPProcessor(_configManager, _logger);
@@ -74,7 +80,7 @@ namespace RhinoAI.Core
 
                 // Initialize Core Components
                 _contextManager = new ContextManager(_logger);
-                _suggestionEngine = new SuggestionEngine(_logger, OpenAIClient, ClaudeClient);
+                _suggestionEngine = new SuggestionEngine(_logger, OpenAIClient, ClaudeClient, OllamaClient);
 
                 // Initialize MCP server
                 MCPServer = new MCPServer(_configManager, _logger, _contextManager, _suggestionEngine, ProcessNaturalLanguageAsync);
@@ -185,7 +191,9 @@ namespace RhinoAI.Core
         /// <returns>True if at least one AI service is available</returns>
         public bool IsAIServiceAvailable()
         {
-            return OpenAIClient?.IsConfigured == true || ClaudeClient?.IsConfigured == true;
+            return OpenAIClient?.IsConfigured == true || 
+                   ClaudeClient?.IsConfigured == true || 
+                   OllamaClient?.IsConfigured == true;
         }
 
         /// <summary>
@@ -198,9 +206,41 @@ namespace RhinoAI.Core
             {
                 OpenAIAvailable = OpenAIClient?.IsConfigured == true,
                 ClaudeAvailable = ClaudeClient?.IsConfigured == true,
+                OllamaAvailable = OllamaClient?.IsConfigured == true,
                 MCPServerRunning = MCPServer?.IsRunning == true,
                 RealTimeAssistanceActive = RealTimeAssistant?.IsMonitoring == true
             };
+        }
+
+        /// <summary>
+        /// Reinitialize AI clients with updated configuration
+        /// </summary>
+        public void ReinitializeClients()
+        {
+            try
+            {
+                _logger?.LogInformation("Reinitializing AI clients...");
+
+                // Reinitialize clients
+                OpenAIClient = new OpenAIClient(_configManager, _logger);
+                ClaudeClient = new ClaudeClient(_configManager, _logger);
+                OllamaClient = new OllamaClient(_configManager, _logger);
+                
+                // Reinitialize AI processors that depend on clients
+                NlpProcessor = new NLPProcessor(_configManager, _logger);
+                VisionProcessor = new VisionProcessor(_configManager, _logger, OpenAIClient);
+                GenerativeDesigner = new GenerativeDesigner(_configManager, _logger);
+                
+                // Update suggestion engine with new clients
+                _suggestionEngine = new SuggestionEngine(_logger, OpenAIClient, ClaudeClient, OllamaClient);
+
+                _logger?.LogInformation("AI clients reinitialized successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error reinitializing AI clients");
+                throw;
+            }
         }
 
         public void Dispose()
@@ -220,6 +260,7 @@ namespace RhinoAI.Core
                 
                 OpenAIClient?.Dispose();
                 ClaudeClient?.Dispose();
+                OllamaClient?.Dispose();
                 MCPServer?.Dispose();
                 MCPClient?.Dispose();
                 RealTimeAssistant?.Dispose();
@@ -237,9 +278,10 @@ namespace RhinoAI.Core
     {
         public bool OpenAIAvailable { get; set; }
         public bool ClaudeAvailable { get; set; }
+        public bool OllamaAvailable { get; set; }
         public bool MCPServerRunning { get; set; }
         public bool RealTimeAssistanceActive { get; set; }
         
-        public bool AnyServiceAvailable => OpenAIAvailable || ClaudeAvailable;
+        public bool AnyServiceAvailable => OpenAIAvailable || ClaudeAvailable || OllamaAvailable;
     }
 } 

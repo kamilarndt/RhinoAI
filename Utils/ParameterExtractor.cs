@@ -83,6 +83,30 @@ namespace RhinoAI.Utils
                 }
             }
 
+            // Extract array dimensions (e.g., "3x3", "5x4")
+            var arrayDimensions = ExtractArrayDimensions(input);
+            if (arrayDimensions.HasValue)
+            {
+                if (expectedParams.Contains("rows"))
+                {
+                    parameters["rows"] = arrayDimensions.Value.rows;
+                }
+                if (expectedParams.Contains("columns"))
+                {
+                    parameters["columns"] = arrayDimensions.Value.columns;
+                }
+            }
+
+            // Extract spacing if mentioned
+            if (expectedParams.Contains("spacing"))
+            {
+                var spacing = ExtractSpacing(input);
+                if (spacing.HasValue)
+                {
+                    parameters["spacing"] = spacing.Value;
+                }
+            }
+
             return parameters;
         }
 
@@ -162,6 +186,51 @@ namespace RhinoAI.Utils
             }
 
             return names;
+        }
+
+        private static (int rows, int columns)? ExtractArrayDimensions(string input)
+        {
+            // Look for patterns like "3x3", "5x4", "2 x 3", etc.
+            var dimensionPattern = @"(\d+)\s*[x×]\s*(\d+)";
+            var match = Regex.Match(input, dimensionPattern, RegexOptions.IgnoreCase);
+            
+            if (match.Success && match.Groups.Count >= 3)
+            {
+                if (int.TryParse(match.Groups[1].Value, out int rows) && 
+                    int.TryParse(match.Groups[2].Value, out int columns))
+                {
+                    return (rows, columns);
+                }
+            }
+            
+            return null;
+        }
+
+        private static double? ExtractSpacing(string input)
+        {
+            // Look for patterns like "spacing 2", "space 1.5", "spaced 3", etc.
+            var spacingPatterns = new[]
+            {
+                @"spacing\s+(\d+(?:\.\d+)?)",
+                @"spaced\s+(\d+(?:\.\d+)?)",
+                @"space\s+(\d+(?:\.\d+)?)",
+                @"gap\s+(\d+(?:\.\d+)?)",
+                @"distance\s+(\d+(?:\.\d+)?)"
+            };
+
+            foreach (var pattern in spacingPatterns)
+            {
+                var match = Regex.Match(input, pattern, RegexOptions.IgnoreCase);
+                if (match.Success && match.Groups.Count > 1)
+                {
+                    if (double.TryParse(match.Groups[1].Value, out double spacing))
+                    {
+                        return spacing;
+                    }
+                }
+            }
+
+            return null;
         }
     }
 } 

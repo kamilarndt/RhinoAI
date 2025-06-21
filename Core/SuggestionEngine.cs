@@ -14,12 +14,14 @@ namespace RhinoAI.Core
         private readonly SimpleLogger _logger;
         private readonly OpenAIClient _openAIClient;
         private readonly ClaudeClient _claudeClient;
+        private readonly OllamaClient _ollamaClient;
 
-        public SuggestionEngine(SimpleLogger logger, OpenAIClient openAIClient, ClaudeClient claudeClient)
+        public SuggestionEngine(SimpleLogger logger, OpenAIClient openAIClient, ClaudeClient claudeClient, OllamaClient ollamaClient)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _openAIClient = openAIClient ?? throw new ArgumentNullException(nameof(openAIClient));
             _claudeClient = claudeClient ?? throw new ArgumentNullException(nameof(claudeClient));
+            _ollamaClient = ollamaClient ?? throw new ArgumentNullException(nameof(ollamaClient));
         }
 
         /// <summary>

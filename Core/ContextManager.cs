@@ -41,7 +41,7 @@ namespace RhinoAI.Core
         /// <summary>
         /// Get the current scene context
         /// </summary>
-        public SceneContext GetCurrentContext()
+        public SceneContext? GetCurrentContext()
         {
             return _currentContext;
         }
@@ -49,7 +49,7 @@ namespace RhinoAI.Core
         /// <summary>
         /// Get a specific version of the scene context
         /// </summary>
-        public SceneContext GetContextById(string contextId)
+        public SceneContext? GetContextById(string contextId)
         {
             if (_contextHistory.TryGetValue(contextId, out var context))
             {

@@ -24,6 +24,7 @@ namespace RhinoAI.AI
     {
         private readonly OpenAIClient _openAIClient;
         private readonly ClaudeClient _claudeClient;
+        private readonly OllamaClient _ollamaClient;
         private readonly SimpleLogger _logger;
         private readonly ConfigurationManager _configManager;
         private readonly Dictionary<string, CommandTemplate> _commandTemplates;
@@ -40,6 +41,7 @@ namespace RhinoAI.AI
             // Initialize AI clients based on configuration
             _openAIClient = new OpenAIClient(_configManager, _logger);
             _claudeClient = new ClaudeClient(_configManager, _logger);
+            _ollamaClient = new OllamaClient(_configManager, _logger);
             
             _commandTemplates = InitializeCommandTemplates();
             
@@ -134,7 +136,7 @@ namespace RhinoAI.AI
             var requestJson = JsonSerializer.Serialize(userRequest);
             var aiResponseJson = "";
 
-            // Try OpenAI first, then fallback to Claude
+            // Try AI services in order: OpenAI, Claude, then Ollama
             if (_openAIClient?.IsConfigured == true)
             {
                 aiResponseJson = await _openAIClient.ProcessTextAsync(systemPrompt, requestJson);
@@ -143,9 +145,13 @@ namespace RhinoAI.AI
             {
                 aiResponseJson = await _claudeClient.ProcessTextAsync(systemPrompt, requestJson);
             }
+            else if (_ollamaClient?.IsConfigured == true)
+            {
+                aiResponseJson = await _ollamaClient.ProcessTextAsync(systemPrompt, requestJson);
+            }
             else
             {
-                return "No AI service is configured. Please configure OpenAI or Claude API keys.";
+                return "No AI service is configured. Please configure OpenAI, Claude API keys, or Ollama.";
             }
 
             // Parse AI response for commands
@@ -161,8 +167,7 @@ namespace RhinoAI.AI
                         var commandTemplate = _commandTemplates.GetValueOrDefault(action.CommandName);
                         if (commandTemplate != null)
                         {
-                            var parameterExtractor = new ParameterExtractor();
-                            var parameters = await parameterExtractor.ExtractParametersAsync(input, commandTemplate, new ConversationContext());
+                            var parameters = Utils.ParameterExtractor.Extract(input, commandTemplate.Parameters.ToList());
                             results.Add(await ExecuteRhinoCommand(commandTemplate, parameters));
                         }
                     }
@@ -274,6 +279,12 @@ Example Response:
                     case "CreateCylinder":
                         return CreateCylinder(parameters);
                     
+                    case "CreateSphereArray":
+                        return CreateSphereArray(parameters);
+                    
+                    case "CreateBoxArray":
+                        return CreateBoxArray(parameters);
+                    
                     case "SelectAll":
                         return SelectAllObjects();
                     
@@ -320,8 +331,7 @@ Example Response:
         /// </summary>
         private async Task<string> ExecuteRhinoCommand(CommandTemplate template, string originalInput)
         {
-            var parameterExtractor = new ParameterExtractor();
-            var parameters = await parameterExtractor.ExtractParametersAsync(originalInput, template, new ConversationContext());
+            var parameters = Utils.ParameterExtractor.Extract(originalInput, template.Parameters.ToList());
             return await ExecuteRhinoCommand(template, parameters);
         }
 
@@ -490,6 +500,121 @@ Example Response:
         }
 
         /// <summary>
+        /// Create an array of spheres based on parameters
+        /// </summary>
+        private string CreateSphereArray(Dictionary<string, object> parameters)
+        {
+            var center = GetPointParameter(parameters, "center", Point3d.Origin);
+            var radius = GetDoubleParameter(parameters, "radius", 1.0);
+            var rows = GetIntParameter(parameters, "rows", 3);
+            var columns = GetIntParameter(parameters, "columns", 3);
+            var spacing = GetDoubleParameter(parameters, "spacing", radius * 2.5);
+            var color = GetColorParameter(parameters, "color");
+            var name = GetStringParameter(parameters, "name", "");
+
+            var createdCount = 0;
+
+            for (int i = 0; i < rows; i++)
+            {
+                for (int j = 0; j < columns; j++)
+                {
+                    var sphereCenter = new Point3d(
+                        center.X + j * spacing,
+                        center.Y + i * spacing,
+                        center.Z
+                    );
+
+                    var sphere = new Sphere(sphereCenter, radius);
+                    var brep = sphere.ToBrep();
+
+                    if (brep?.IsValid == true)
+                    {
+                        var attributes = new ObjectAttributes();
+                        if (color.HasValue)
+                        {
+                            attributes.ObjectColor = color.Value;
+                            attributes.ColorSource = ObjectColorSource.ColorFromObject;
+                        }
+
+                        if (!string.IsNullOrEmpty(name))
+                        {
+                            attributes.Name = $"{name}_sphere_{i}_{j}";
+                        }
+
+                        var id = RhinoDoc.ActiveDoc.Objects.AddBrep(brep, attributes);
+                        if (id != Guid.Empty)
+                        {
+                            createdCount++;
+                        }
+                    }
+                }
+            }
+
+            RhinoDoc.ActiveDoc.Views.Redraw();
+            return $"Created {createdCount} spheres in a {rows}x{columns} array with radius {radius:F2} and spacing {spacing:F2}";
+        }
+
+        /// <summary>
+        /// Create an array of boxes based on parameters
+        /// </summary>
+        private string CreateBoxArray(Dictionary<string, object> parameters)
+        {
+            var center = GetPointParameter(parameters, "center", Point3d.Origin);
+            var size = GetDoubleParameter(parameters, "size", 2.0);
+            var rows = GetIntParameter(parameters, "rows", 3);
+            var columns = GetIntParameter(parameters, "columns", 3);
+            var spacing = GetDoubleParameter(parameters, "spacing", size * 1.5);
+            var color = GetColorParameter(parameters, "color");
+            var name = GetStringParameter(parameters, "name", "");
+
+            var createdCount = 0;
+
+            for (int i = 0; i < rows; i++)
+            {
+                for (int j = 0; j < columns; j++)
+                {
+                    var boxCenter = new Point3d(
+                        center.X + j * spacing,
+                        center.Y + i * spacing,
+                        center.Z
+                    );
+
+                    var interval = new Interval(-size / 2, size / 2);
+                    var box = new Box(
+                        new Plane(boxCenter, Vector3d.ZAxis),
+                        interval, interval, interval
+                    );
+
+                    var brep = box.ToBrep();
+
+                    if (brep?.IsValid == true)
+                    {
+                        var attributes = new ObjectAttributes();
+                        if (color.HasValue)
+                        {
+                            attributes.ObjectColor = color.Value;
+                            attributes.ColorSource = ObjectColorSource.ColorFromObject;
+                        }
+
+                        if (!string.IsNullOrEmpty(name))
+                        {
+                            attributes.Name = $"{name}_box_{i}_{j}";
+                        }
+
+                        var id = RhinoDoc.ActiveDoc.Objects.AddBrep(brep, attributes);
+                        if (id != Guid.Empty)
+                        {
+                            createdCount++;
+                        }
+                    }
+                }
+            }
+
+            RhinoDoc.ActiveDoc.Views.Redraw();
+            return $"Created {createdCount} boxes in a {rows}x{columns} array with size {size:F2} and spacing {spacing:F2}";
+        }
+
+        /// <summary>
         /// Get point parameter with default
         /// </summary>
         private Point3d GetPointParameter(Dictionary<string, object> parameters, string key, Point3d defaultValue)
@@ -503,6 +628,14 @@ Example Response:
         private double GetDoubleParameter(Dictionary<string, object> parameters, string key, double defaultValue)
         {
             return parameters.TryGetValue(key, out var value) && value is double d ? d : defaultValue;
+        }
+
+        /// <summary>
+        /// Get int parameter with default
+        /// </summary>
+        private int GetIntParameter(Dictionary<string, object> parameters, string key, int defaultValue)
+        {
+            return parameters.TryGetValue(key, out var value) && value is int i ? i : defaultValue;
         }
 
         /// <summary>
@@ -977,6 +1110,24 @@ Example Response:
                         Parameters = new[] { "center", "radius", "height", "color", "name" }
                     }
                 },
+                {
+                    "CreateSphereArray", new CommandTemplate
+                    {
+                        CommandName = "CreateSphereArray",
+                        Keywords = new[] { "array of spheres", "multiple spheres", "sphere array", "spheres array", "3x3 spheres", "grid of spheres" },
+                        Description = "Creates an array of spheres.",
+                        Parameters = new[] { "rows", "columns", "spacing", "radius", "center", "color", "name" }
+                    }
+                },
+                {
+                    "CreateBoxArray", new CommandTemplate
+                    {
+                        CommandName = "CreateBoxArray",
+                        Keywords = new[] { "array of boxes", "multiple boxes", "box array", "boxes array", "grid of boxes" },
+                        Description = "Creates an array of boxes.",
+                        Parameters = new[] { "rows", "columns", "spacing", "size", "center", "color", "name" }
+                    }
+                },
                 
                 // Selection commands
                 {
@@ -1108,6 +1259,25 @@ Example Response:
         public void ResetContext()
         {
             _enhancedProcessor?.ResetContext();
+        }
+
+        public ProcessingResult ProcessCommandAsync(string input)
+        {
+            var result = ProcessingResult.Success($"Processed command: {input}");
+            // ... existing code ...
+            return result;
+        }
+
+        private Task<string> GetCurrentLayerAsync()
+        {
+            // In a real implementation, this would be an async call to Rhino
+            return Task.FromResult(RhinoDoc.ActiveDoc.Layers.CurrentLayer.Name);
+        }
+
+        private Task<int> GetObjectCountAsync()
+        {
+            // In a real implementation, this would be an async call to Rhino
+            return Task.FromResult(RhinoDoc.ActiveDoc.Objects.Count);
         }
     }
 

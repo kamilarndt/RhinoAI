@@ -31,6 +31,9 @@ namespace RhinoAI.UI.Panels
         private ListView _historyListView;
         private ProgressBar _progressBar;
         private Label _statusLabel;
+        private TextBox _openAITextBox;
+        private TextBox _claudeTextBox;
+        private ComboBox _themeComboBox;
 
         public AIControlPanel()
         {
@@ -42,9 +45,12 @@ namespace RhinoAI.UI.Panels
         {
             try
             {
-                _aiManager = RhinoAIPlugin.Instance?.AIManager;
-                _logger = RhinoAIPlugin.Instance?.Logger;
-                
+                if (RhinoAIPlugin.Instance != null)
+                {
+                    _aiManager = RhinoAIPlugin.Instance.AIManager;
+                    _logger = RhinoAIPlugin.Instance.Logger;
+                }
+
                 if (_aiManager == null)
                 {
                     ShowError("AI Manager not initialized");
@@ -258,14 +264,14 @@ namespace RhinoAI.UI.Panels
             };
             apiKeysGroupBox.Controls.Add(openAILabel);
 
-            var openAITextBox = new TextBox
+            _openAITextBox = new TextBox
             {
                 Location = new Point(10, 45),
                 Size = new Size(320, 23),
                 UseSystemPasswordChar = true,
                 PlaceholderText = "Enter OpenAI API key"
             };
-            apiKeysGroupBox.Controls.Add(openAITextBox);
+            apiKeysGroupBox.Controls.Add(_openAITextBox);
 
             var claudeLabel = new Label
             {
@@ -275,14 +281,14 @@ namespace RhinoAI.UI.Panels
             };
             apiKeysGroupBox.Controls.Add(claudeLabel);
 
-            var claudeTextBox = new TextBox
+            _claudeTextBox = new TextBox
             {
                 Location = new Point(10, 95),
                 Size = new Size(320, 23),
                 UseSystemPasswordChar = true,
                 PlaceholderText = "Enter Claude API key"
             };
-            apiKeysGroupBox.Controls.Add(claudeTextBox);
+            apiKeysGroupBox.Controls.Add(_claudeTextBox);
 
             // MCP Settings section
             var mcpGroupBox = new GroupBox
@@ -309,12 +315,39 @@ namespace RhinoAI.UI.Panels
             };
             mcpGroupBox.Controls.Add(mcpUrlTextBox);
 
+            // UI Settings section
+            var uiGroupBox = new GroupBox
+            {
+                Text = "UI Settings",
+                Size = new Size(350, 60),
+                Location = new Point(0, 220)
+            };
+            settingsPanel.Controls.Add(uiGroupBox);
+
+            var themeLabel = new Label
+            {
+                Text = "Theme:",
+                Location = new Point(10, 25),
+                Size = new Size(50, 20)
+            };
+            uiGroupBox.Controls.Add(themeLabel);
+
+            _themeComboBox = new ComboBox
+            {
+                Location = new Point(70, 22),
+                Size = new Size(100, 23),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            _themeComboBox.Items.AddRange(new[] { "Light", "Dark", "Auto" });
+            _themeComboBox.SelectedIndex = 0;
+            uiGroupBox.Controls.Add(_themeComboBox);
+
             // Save button
             var saveButton = new Button
             {
                 Text = "Save Settings",
                 Size = new Size(100, 30),
-                Location = new Point(0, 220),
+                Location = new Point(0, 290),
                 BackColor = Color.Green,
                 ForeColor = Color.White
             };
@@ -341,10 +374,11 @@ namespace RhinoAI.UI.Panels
             historyTab.Controls.Add(_historyListView);
         }
 
-        private async void SendButton_Click(object sender, EventArgs e)
+        private async void SendButton_Click(object? sender, EventArgs e)
         {
             var input = _inputTextBox.Text;
-            if (string.IsNullOrWhiteSpace(input)) return;
+            if (string.IsNullOrWhiteSpace(input))
+                return;
 
             SetBusyState(true);
             LogInteraction("User", input);
@@ -367,7 +401,7 @@ namespace RhinoAI.UI.Panels
             }
         }
 
-        private void InputTextBox_KeyDown(object sender, KeyEventArgs e)
+        private void InputTextBox_KeyDown(object? sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter && e.Control)
             {
@@ -376,18 +410,27 @@ namespace RhinoAI.UI.Panels
             }
         }
 
-        private void ClearButton_Click(object sender, EventArgs e)
+        private void ClearButton_Click(object? sender, EventArgs e)
         {
             _outputTextBox.Clear();
             _inputTextBox.Clear();
             SetStatus("Cleared", Color.Blue);
         }
 
-        private void SaveButton_Click(object sender, EventArgs e)
+        private void SaveButton_Click(object? sender, EventArgs e)
         {
             try
             {
-                // Save settings implementation
+                // Save API keys from text boxes
+                _aiManager?.Config.SaveApiKey("OpenAI", _openAITextBox.Text);
+                _aiManager?.Config.SaveApiKey("Claude", _claudeTextBox.Text);
+
+                // Save other settings
+                _aiManager?.Config.SetSetting("UI:Theme", _themeComboBox.SelectedItem?.ToString() ?? "Light");
+
+                // Save configuration
+                _aiManager?.Config.SaveConfiguration();
+
                 SetStatus("Settings saved", Color.Green);
             }
             catch (Exception ex)
@@ -396,7 +439,7 @@ namespace RhinoAI.UI.Panels
             }
         }
 
-        private void HistoryListView_DoubleClick(object sender, EventArgs e)
+        private void HistoryListView_DoubleClick(object? sender, EventArgs e)
         {
             if (_historyListView.SelectedItems.Count > 0)
             {
@@ -482,7 +525,7 @@ namespace RhinoAI.UI.Panels
             SetStatus("Request completed", Color.Green);
         }
 
-        private async void GetSuggestionsButton_Click(object sender, EventArgs e)
+        private async void GetSuggestionsButton_Click(object? sender, EventArgs e)
         {
             await FetchAndShowSuggestions();
         }

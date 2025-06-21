@@ -120,7 +120,7 @@ namespace RhinoAI.AI
 
         #region Command Implementations
 
-        private async Task<ProcessingResult> CreateSphereAsync(Dictionary<string, object> parameters)
+        private Task<ProcessingResult> CreateSphereAsync(Dictionary<string, object> parameters)
         {
             try
             {
@@ -161,19 +161,19 @@ namespace RhinoAI.AI
                         var colorName = color.HasValue ? GetColorName(color.Value) : "default";
                         var nameInfo = !string.IsNullOrEmpty(name) ? $" named '{name}'" : "";
                         
-                        return ProcessingResult.Success($"Created sphere in {colorName}{nameInfo} at {center} with radius {radius}");
+                        return Task.FromResult(ProcessingResult.Success($"Created sphere in {colorName}{nameInfo} at {center} with radius {radius}"));
                     }
                 }
 
-                return ProcessingResult.Error("Failed to create sphere");
+                return Task.FromResult(ProcessingResult.Error("Failed to create sphere"));
             }
             catch (Exception ex)
             {
-                return ProcessingResult.Error($"Error creating sphere: {ex.Message}");
+                return Task.FromResult(ProcessingResult.Error($"Error creating sphere: {ex.Message}"));
             }
         }
 
-        private async Task<ProcessingResult> CreateBoxAsync(Dictionary<string, object> parameters)
+        private Task<ProcessingResult> CreateBoxAsync(Dictionary<string, object> parameters)
         {
             try
             {
@@ -218,19 +218,19 @@ namespace RhinoAI.AI
                         var colorName = color.HasValue ? GetColorName(color.Value) : "default";
                         var nameInfo = !string.IsNullOrEmpty(name) ? $" named '{name}'" : "";
                         
-                        return ProcessingResult.Success($"Created box in {colorName}{nameInfo} at {center} with dimensions {dimensions.X}x{dimensions.Y}x{dimensions.Z}");
+                        return Task.FromResult(ProcessingResult.Success($"Created box in {colorName}{nameInfo} at {center} with dimensions {dimensions.X}x{dimensions.Y}x{dimensions.Z}"));
                     }
                 }
 
-                return ProcessingResult.Error("Failed to create box");
+                return Task.FromResult(ProcessingResult.Error("Failed to create box"));
             }
             catch (Exception ex)
             {
-                return ProcessingResult.Error($"Error creating box: {ex.Message}");
+                return Task.FromResult(ProcessingResult.Error($"Error creating box: {ex.Message}"));
             }
         }
 
-        private async Task<ProcessingResult> CreateCylinderAsync(Dictionary<string, object> parameters)
+        private Task<ProcessingResult> CreateCylinderAsync(Dictionary<string, object> parameters)
         {
             try
             {
@@ -271,19 +271,19 @@ namespace RhinoAI.AI
                         var colorName = color.HasValue ? GetColorName(color.Value) : "default";
                         var nameInfo = !string.IsNullOrEmpty(name) ? $" named '{name}'" : "";
                         
-                        return ProcessingResult.Success($"Created cylinder in {colorName}{nameInfo} at {center} with radius {radius} and height {height}");
+                        return Task.FromResult(ProcessingResult.Success($"Created cylinder in {colorName}{nameInfo} at {center} with radius {radius} and height {height}"));
                     }
                 }
 
-                return ProcessingResult.Error("Failed to create cylinder");
+                return Task.FromResult(ProcessingResult.Error("Failed to create cylinder"));
             }
             catch (Exception ex)
             {
-                return ProcessingResult.Error($"Error creating cylinder: {ex.Message}");
+                return Task.FromResult(ProcessingResult.Error($"Error creating cylinder: {ex.Message}"));
             }
         }
 
-        private async Task<ProcessingResult> MoveObjectsAsync(Dictionary<string, object> parameters)
+        private Task<ProcessingResult> MoveObjectsAsync(Dictionary<string, object> parameters)
         {
             try
             {
@@ -292,7 +292,7 @@ namespace RhinoAI.AI
 
                 if (selectedObjects?.Count() == 0)
                 {
-                    return ProcessingResult.Warning("No objects selected to move");
+                    return Task.FromResult(ProcessingResult.Warning("No objects selected to move"));
                 }
 
                 var transform = Transform.Translation(translation);
@@ -307,15 +307,15 @@ namespace RhinoAI.AI
                 }
 
                 RhinoDoc.ActiveDoc.Views.Redraw();
-                return ProcessingResult.Success($"Moved {movedCount} object(s) by {translation}");
+                return Task.FromResult(ProcessingResult.Success($"Moved {movedCount} object(s) by {translation}"));
             }
             catch (Exception ex)
             {
-                return ProcessingResult.Error($"Error moving objects: {ex.Message}");
+                return Task.FromResult(ProcessingResult.Error($"Error moving objects: {ex.Message}"));
             }
         }
 
-        private async Task<ProcessingResult> ScaleObjectsAsync(Dictionary<string, object> parameters)
+        private Task<ProcessingResult> ScaleObjectsAsync(Dictionary<string, object> parameters)
         {
             try
             {
@@ -324,7 +324,7 @@ namespace RhinoAI.AI
 
                 if (selectedObjects?.Count() == 0)
                 {
-                    return ProcessingResult.Warning("No objects selected to scale");
+                    return Task.FromResult(ProcessingResult.Warning("No objects selected to scale"));
                 }
 
                 var transform = Transform.Scale(Point3d.Origin, scale);
@@ -339,15 +339,15 @@ namespace RhinoAI.AI
                 }
 
                 RhinoDoc.ActiveDoc.Views.Redraw();
-                return ProcessingResult.Success($"Scaled {scaledCount} object(s) by factor {scale:F2}");
+                return Task.FromResult(ProcessingResult.Success($"Scaled {scaledCount} object(s) by factor {scale:F2}"));
             }
             catch (Exception ex)
             {
-                return ProcessingResult.Error($"Error scaling objects: {ex.Message}");
+                return Task.FromResult(ProcessingResult.Error($"Error scaling objects: {ex.Message}"));
             }
         }
 
-        private async Task<ProcessingResult> BooleanUnionAsync(Dictionary<string, object> parameters)
+        private Task<ProcessingResult> BooleanUnionAsync(Dictionary<string, object> parameters)
         {
             try
             {
@@ -356,7 +356,7 @@ namespace RhinoAI.AI
 
                 if (breps.Length < 2)
                 {
-                    return ProcessingResult.Warning("Need at least 2 objects selected for boolean union");
+                    return Task.FromResult(ProcessingResult.Warning("Need at least 2 objects selected for boolean union"));
                 }
 
                 var unionResult = Brep.CreateBooleanUnion(breps, RhinoDoc.ActiveDoc.ModelAbsoluteTolerance);
@@ -374,18 +374,18 @@ namespace RhinoAI.AI
                     RhinoDoc.ActiveDoc.Objects.Select(unionId);
                     RhinoDoc.ActiveDoc.Views.Redraw();
 
-                    return ProcessingResult.Success($"Created boolean union from {breps.Length} objects");
+                    return Task.FromResult(ProcessingResult.Success($"Created boolean union from {breps.Length} objects"));
                 }
 
-                return ProcessingResult.Error("Boolean union operation failed");
+                return Task.FromResult(ProcessingResult.Error("Boolean union operation failed"));
             }
             catch (Exception ex)
             {
-                return ProcessingResult.Error($"Error in boolean union: {ex.Message}");
+                return Task.FromResult(ProcessingResult.Error($"Error in boolean union: {ex.Message}"));
             }
         }
 
-        private async Task<ProcessingResult> BooleanDifferenceAsync(Dictionary<string, object> parameters)
+        private Task<ProcessingResult> BooleanDifferenceAsync(Dictionary<string, object> parameters)
         {
             try
             {
@@ -394,7 +394,7 @@ namespace RhinoAI.AI
 
                 if (breps.Length < 2)
                 {
-                    return ProcessingResult.Warning("Need at least 2 objects selected for boolean difference");
+                    return Task.FromResult(ProcessingResult.Warning("Need at least 2 objects selected for boolean difference"));
                 }
 
                 var firstBrep = breps[0];
@@ -415,18 +415,18 @@ namespace RhinoAI.AI
                     RhinoDoc.ActiveDoc.Objects.Select(diffId);
                     RhinoDoc.ActiveDoc.Views.Redraw();
 
-                    return ProcessingResult.Success($"Created boolean difference from {breps.Length} objects");
+                    return Task.FromResult(ProcessingResult.Success($"Created boolean difference from {breps.Length} objects"));
                 }
 
-                return ProcessingResult.Error("Boolean difference operation failed");
+                return Task.FromResult(ProcessingResult.Error("Boolean difference operation failed"));
             }
             catch (Exception ex)
             {
-                return ProcessingResult.Error($"Error in boolean difference: {ex.Message}");
+                return Task.FromResult(ProcessingResult.Error($"Error in boolean difference: {ex.Message}"));
             }
         }
 
-        private async Task<ProcessingResult> BooleanIntersectionAsync(Dictionary<string, object> parameters)
+        private Task<ProcessingResult> BooleanIntersectionAsync(Dictionary<string, object> parameters)
         {
             try
             {
@@ -435,7 +435,7 @@ namespace RhinoAI.AI
 
                 if (breps.Length < 2)
                 {
-                    return ProcessingResult.Warning("Need at least 2 objects selected for boolean intersection");
+                    return Task.FromResult(ProcessingResult.Warning("Need at least 2 objects selected for boolean intersection"));
                 }
 
                 var firstBrep = breps[0];
@@ -456,18 +456,18 @@ namespace RhinoAI.AI
                     RhinoDoc.ActiveDoc.Objects.Select(intId);
                     RhinoDoc.ActiveDoc.Views.Redraw();
 
-                    return ProcessingResult.Success($"Created boolean intersection from {breps.Length} objects");
+                    return Task.FromResult(ProcessingResult.Success($"Created boolean intersection from {breps.Length} objects"));
                 }
 
-                return ProcessingResult.Error("Boolean intersection operation failed");
+                return Task.FromResult(ProcessingResult.Error("Boolean intersection operation failed"));
             }
             catch (Exception ex)
             {
-                return ProcessingResult.Error($"Error in boolean intersection: {ex.Message}");
+                return Task.FromResult(ProcessingResult.Error($"Error in boolean intersection: {ex.Message}"));
             }
         }
 
-        private async Task<ProcessingResult> ExplodeObjectsAsync(Dictionary<string, object> parameters)
+        private Task<ProcessingResult> ExplodeObjectsAsync(Dictionary<string, object> parameters)
         {
             try
             {
@@ -495,15 +495,15 @@ namespace RhinoAI.AI
                 }
 
                 RhinoDoc.ActiveDoc.Views.Redraw();
-                return ProcessingResult.Success($"Exploded {selectedObjects.Count()} object(s) into {explodedCount} faces");
+                return Task.FromResult(ProcessingResult.Success($"Exploded {selectedObjects.Count()} object(s) into {explodedCount} faces"));
             }
             catch (Exception ex)
             {
-                return ProcessingResult.Error($"Error exploding objects: {ex.Message}");
+                return Task.FromResult(ProcessingResult.Error($"Error exploding objects: {ex.Message}"));
             }
         }
 
-        private async Task<ProcessingResult> JoinObjectsAsync(Dictionary<string, object> parameters)
+        private Task<ProcessingResult> JoinObjectsAsync(Dictionary<string, object> parameters)
         {
             try
             {
@@ -512,7 +512,7 @@ namespace RhinoAI.AI
 
                 if (breps.Length < 2)
                 {
-                    return ProcessingResult.Warning("Need at least 2 objects selected for joining");
+                    return Task.FromResult(ProcessingResult.Warning("Need at least 2 objects selected for joining"));
                 }
 
                 var joinedBreps = Brep.JoinBreps(breps, RhinoDoc.ActiveDoc.ModelAbsoluteTolerance);
@@ -533,14 +533,14 @@ namespace RhinoAI.AI
                     }
                     
                     RhinoDoc.ActiveDoc.Views.Redraw();
-                    return ProcessingResult.Success($"Joined {breps.Length} objects into {joinedBreps.Length} object(s)");
+                    return Task.FromResult(ProcessingResult.Success($"Joined {breps.Length} objects into {joinedBreps.Length} object(s)"));
                 }
 
-                return ProcessingResult.Error("Join operation failed");
+                return Task.FromResult(ProcessingResult.Error("Join operation failed"));
             }
             catch (Exception ex)
             {
-                return ProcessingResult.Error($"Error joining objects: {ex.Message}");
+                return Task.FromResult(ProcessingResult.Error($"Error joining objects: {ex.Message}"));
             }
         }
 

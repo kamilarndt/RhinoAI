@@ -165,9 +165,9 @@ namespace RhinoAI.AI
 
             // Update context with recent operations
             context.RecentOperations = ExtractRecentOperations();
-            context.ActiveLayer = await GetActiveLayerAsync();
-            context.SelectedObjects = await GetSelectedObjectsAsync();
-            context.SceneDescription = await GenerateSceneDescriptionAsync();
+            context.ActiveLayer = GetActiveLayerAsync().Result;
+            context.SelectedObjects = GetSelectedObjectsAsync().Result;
+            context.SceneDescription = GenerateSceneDescriptionAsync().Result;
 
             return context;
         }
@@ -194,22 +194,22 @@ namespace RhinoAI.AI
             return string.Empty;
         }
 
-        private async Task<string> GetActiveLayerAsync()
+        private Task<string> GetActiveLayerAsync()
         {
             // This would integrate with Rhino to get the current active layer
-            return "Default";
+            return Task.FromResult("Default");
         }
 
-        private async Task<List<Guid>> GetSelectedObjectsAsync()
+        private Task<List<Guid>> GetSelectedObjectsAsync()
         {
             // This would integrate with Rhino to get currently selected objects
-            return new List<Guid>();
+            return Task.FromResult(new List<Guid>());
         }
 
-        private async Task<string> GenerateSceneDescriptionAsync()
+        private Task<string> GenerateSceneDescriptionAsync()
         {
             // This would analyze the current Rhino scene and generate a description
-            return "Empty scene";
+            return Task.FromResult("Empty scene");
         }
     }
 
@@ -244,12 +244,12 @@ namespace RhinoAI.AI
             return parameters;
         }
 
-        private async Task<object> ExtractParameterAsync(
+        private Task<object> ExtractParameterAsync(
             string input, 
             string parameterName, 
             ConversationContext context)
         {
-            return parameterName.ToLower() switch
+            return Task.FromResult<object>(parameterName.ToLower() switch
             {
                 "center" or "position" => ExtractPoint3d(input, context),
                 "radius" => ExtractRadius(input),
@@ -262,7 +262,7 @@ namespace RhinoAI.AI
                 "material" => ExtractMaterial(input),
                 "layer" => ExtractLayer(input),
                 _ => null
-            };
+            });
         }
 
         private Point3d? ExtractPoint3d(string input, ConversationContext context)
@@ -458,7 +458,7 @@ namespace RhinoAI.AI
             return new Dictionary<string, Func<string, object>>();
         }
 
-        public async Task<Dictionary<string, object>> AdjustParametersAsync(
+        public Task<Dictionary<string, object>> AdjustParametersAsync(
             Dictionary<string, object> parameters, 
             string errorMessage)
         {
@@ -474,7 +474,7 @@ namespace RhinoAI.AI
                 }
             }
 
-            return adjusted;
+            return Task.FromResult(adjusted);
         }
     }
 
@@ -483,7 +483,7 @@ namespace RhinoAI.AI
     /// </summary>
     public class SemanticValidator
     {
-        public async Task<ValidationResult> ValidateParametersAsync(
+        public Task<ValidationResult> ValidateParametersAsync(
             Dictionary<string, object> parameters, 
             CommandTemplate template)
         {
@@ -504,7 +504,7 @@ namespace RhinoAI.AI
                     break;
             }
 
-            return result;
+            return Task.FromResult(result);
         }
 
         public async Task<ValidationResult> PreExecuteValidationAsync(
@@ -513,12 +513,14 @@ namespace RhinoAI.AI
             ConversationContext context)
         {
             // Additional validation before execution
-            var result = await ValidateParametersAsync(parameters, template);
+            var validationTask = ValidateParametersAsync(parameters, template);
+            var result = validationTask.Result;
 
             if (result.IsValid)
             {
                 // Check for space conflicts, layer existence, etc.
-                result = await ValidateContextConstraints(parameters, context);
+                var contextValidationTask = ValidateContextConstraints(parameters, context);
+                result = contextValidationTask.Result;
             }
 
             return result;
@@ -551,24 +553,19 @@ namespace RhinoAI.AI
 
         private ValidationResult ValidateCylinderParameters(Dictionary<string, object> parameters)
         {
-            var hasRadius = parameters.TryGetValue("radius", out var radiusObj);
-            var hasHeight = parameters.TryGetValue("height", out var heightObj);
-
-            if (hasRadius && radiusObj is double radius && radius <= 0)
-                return ValidationResult.Invalid("Cylinder radius must be positive");
-
-            if (hasHeight && heightObj is double height && height <= 0)
-                return ValidationResult.Invalid("Cylinder height must be positive");
-
+            if (!parameters.ContainsKey("radius") || !parameters.ContainsKey("height"))
+            {
+                return ValidationResult.Invalid("Cylinder requires radius and height");
+            }
             return ValidationResult.Valid();
         }
 
-        private async Task<ValidationResult> ValidateContextConstraints(
+        private Task<ValidationResult> ValidateContextConstraints(
             Dictionary<string, object> parameters, 
             ConversationContext context)
         {
             // Check layer existence, object conflicts, etc.
-            return ValidationResult.Valid();
+            return Task.FromResult(ValidationResult.Valid());
         }
     }
 

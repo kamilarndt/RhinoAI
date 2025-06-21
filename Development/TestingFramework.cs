@@ -17,7 +17,7 @@ namespace RhinoAI.Development
     public class TestingFramework
     {
         private readonly SimpleLogger _logger;
-        private readonly RhinoAI.Core.NLPProcessor _nlpProcessor;
+        private readonly RhinoAI.AI.EnhancedNLPProcessor _nlpProcessor;
         private readonly ConfigurationManager _configManager;
         private readonly List<TestResult> _testResults;
 
@@ -25,7 +25,7 @@ namespace RhinoAI.Development
         {
             _logger = new SimpleLogger("TestingFramework", LogLevel.Information);
             _configManager = new ConfigurationManager(_logger);
-            _nlpProcessor = new RhinoAI.Core.NLPProcessor(_configManager, _logger);
+            _nlpProcessor = new RhinoAI.AI.EnhancedNLPProcessor();
             _testResults = new List<TestResult>();
         }
 
@@ -35,7 +35,7 @@ namespace RhinoAI.Development
         public async Task<TestSuite> RunAllTestsAsync()
         {
             var stopwatch = Stopwatch.StartNew();
-            _logger.LogInfo("Starting RhinoAI Plugin Test Suite");
+            _logger.LogInformation("Starting RhinoAI Plugin Test Suite");
 
             var testSuite = new TestSuite
             {
@@ -85,97 +85,99 @@ namespace RhinoAI.Development
 
         private async Task RunCoreTests(TestSuite testSuite)
         {
-            _logger.LogInfo("Running Core Functionality Tests");
+            _logger.LogInformation("Running Core Functionality Tests");
 
             // Test Configuration Manager
-            await RunTest("ConfigurationManager_LoadDefaults", async () =>
+            await RunTest("ConfigurationManager_LoadDefaults", () =>
             {
-                var config = new ConfigurationManager();
+                var logger = new SimpleLogger("Test", LogLevel.Information);
+                var config = new ConfigurationManager(logger);
                 var apiKey = config.GetSetting("OpenAI:ApiKey");
-                return !string.IsNullOrEmpty(apiKey) || apiKey == "your-api-key-here";
+                return Task.FromResult(!string.IsNullOrEmpty(apiKey) || apiKey == "your-api-key-here");
             }, testSuite);
 
             // Test Logger
-            await RunTest("Logger_BasicLogging", async () =>
+            await RunTest("Logger_BasicLogging", () =>
             {
-                var logger = new SimpleLogger();
-                logger.LogInfo("Test log message");
+                var logger = new SimpleLogger("Test", LogLevel.Information);
+                logger.LogInformation("Test log message");
                 logger.LogWarning("Test warning message");
                 logger.LogError("Test error message");
-                return true;
+                return Task.FromResult(true);
             }, testSuite);
 
             // Test Context Manager
-            await RunTest("ContextManager_DocumentState", async () =>
+            await RunTest("ContextManager_DocumentState", () =>
             {
-                var contextManager = new ContextManager();
+                var logger = new SimpleLogger("Test", LogLevel.Information);
+                var contextManager = new RhinoAI.Core.ContextManager(logger);
                 var context = contextManager.GetCurrentContext();
-                return context != null;
+                return Task.FromResult(context != null);
             }, testSuite);
         }
 
         private async Task RunNLPTests(TestSuite testSuite)
         {
-            _logger.LogInfo("Running NLP Processing Tests");
+            _logger.LogInformation("Running NLP Processing Tests");
 
             // Test basic intent recognition
             await RunTest("NLP_BasicIntentRecognition", async () =>
             {
-                var result = await _nlpProcessor.ProcessCommandAsync("create a box");
-                return result != null && !string.IsNullOrEmpty(result.Intent);
+                var result = await _nlpProcessor.ProcessAsync("create a box");
+                return result != null && result.IsSuccess;
             }, testSuite);
 
             // Test command parsing
             await RunTest("NLP_CommandParsing", async () =>
             {
-                var result = await _nlpProcessor.ProcessCommandAsync("create a sphere with radius 5");
-                return result != null && result.Parameters.Count > 0;
+                var result = await _nlpProcessor.ProcessAsync("create a sphere with radius 5");
+                return result != null && result.IsSuccess;
             }, testSuite);
 
             // Test error handling
             await RunTest("NLP_ErrorHandling", async () =>
             {
-                var result = await _nlpProcessor.ProcessCommandAsync("");
-                return result != null && result.Success == false;
+                var result = await _nlpProcessor.ProcessAsync("");
+                return result != null && result.IsSuccess == false;
             }, testSuite);
 
             // Test complex commands
             await RunTest("NLP_ComplexCommands", async () =>
             {
-                var result = await _nlpProcessor.ProcessCommandAsync("create a loft between two curves");
+                var result = await _nlpProcessor.ProcessAsync("create a loft between two curves");
                 return result != null;
             }, testSuite);
         }
 
         private async Task RunIntegrationTests(TestSuite testSuite)
         {
-            _logger.LogInfo("Running Integration Tests");
+            _logger.LogInformation("Running Integration Tests");
 
             // Test Rhino integration
-            await RunTest("Integration_RhinoDocument", async () =>
+            await RunTest("Integration_RhinoDocument", () =>
             {
                 var doc = RhinoDoc.ActiveDoc;
-                return doc != null;
+                return Task.FromResult(doc != null);
             }, testSuite);
 
             // Test geometry creation
-            await RunTest("Integration_GeometryCreation", async () =>
+            await RunTest("Integration_GeometryCreation", () =>
             {
                 var box = new Box(Plane.WorldXY, new Interval(0, 10), new Interval(0, 10), new Interval(0, 10));
                 var brep = box.ToBrep();
-                return brep != null && brep.IsValid;
+                return Task.FromResult(brep != null && brep.IsValid);
             }, testSuite);
         }
 
         private async Task RunPerformanceTests(TestSuite testSuite)
         {
-            _logger.LogInfo("Running Performance Tests");
+            _logger.LogInformation("Running Performance Tests");
 
             // Test NLP processing speed
             await RunTest("Performance_NLPSpeed", async () =>
             {
                 var stopwatch = Stopwatch.StartNew();
-                await _nlpProcessor.ProcessCommandAsync("create a box");
+                await _nlpProcessor.ProcessAsync("create a box");
                 stopwatch.Stop();
                 return stopwatch.ElapsedMilliseconds < 5000; // Should complete within 5 seconds
             }, testSuite);
@@ -188,7 +190,7 @@ namespace RhinoAI.Development
                 // Perform operations
                 for (int i = 0; i < 100; i++)
                 {
-                    await _nlpProcessor.ProcessCommandAsync($"create box {i}");
+                    await _nlpProcessor.ProcessAsync($"create box {i}");
                 }
                 
                 GC.Collect();
@@ -201,13 +203,13 @@ namespace RhinoAI.Development
 
         private async Task RunUITests(TestSuite testSuite)
         {
-            _logger.LogInfo("Running UI Tests");
+            _logger.LogInformation("Running UI Tests");
 
             // Test panel creation
-            await RunTest("UI_PanelCreation", async () =>
+            await RunTest("UI_PanelCreation", () =>
             {
                 // This would test UI panel creation in a real Rhino environment
-                return true; // Placeholder
+                return Task.FromResult(true); // Placeholder
             }, testSuite);
         }
 
@@ -222,7 +224,7 @@ namespace RhinoAI.Development
 
             try
             {
-                _logger.LogInfo($"Running test: {testName}");
+                _logger.LogInformation($"Running test: {testName}");
                 testResult.Success = await testAction();
                 testResult.ErrorMessage = testResult.Success ? null : "Test returned false";
             }
@@ -240,17 +242,17 @@ namespace RhinoAI.Development
             testSuite.TestResults.Add(testResult);
             
             var status = testResult.Success ? "PASSED" : "FAILED";
-            _logger.LogInfo($"Test {testName}: {status} ({testResult.Duration.TotalMilliseconds:F2}ms)");
+            _logger.LogInformation($"Test {testName}: {status} ({testResult.Duration.TotalMilliseconds:F2}ms)");
         }
 
         private void LogTestSummary(TestSuite testSuite)
         {
-            _logger.LogInfo("=== TEST SUITE SUMMARY ===");
-            _logger.LogInfo($"Total Tests: {testSuite.TotalTests}");
-            _logger.LogInfo($"Passed: {testSuite.PassedTests}");
-            _logger.LogInfo($"Failed: {testSuite.FailedTests}");
-            _logger.LogInfo($"Success Rate: {(double)testSuite.PassedTests / testSuite.TotalTests * 100:F1}%");
-            _logger.LogInfo($"Total Duration: {testSuite.TotalDuration.TotalSeconds:F2} seconds");
+            _logger.LogInformation("=== TEST SUITE SUMMARY ===");
+            _logger.LogInformation($"Total Tests: {testSuite.TotalTests}");
+            _logger.LogInformation($"Passed: {testSuite.PassedTests}");
+            _logger.LogInformation($"Failed: {testSuite.FailedTests}");
+            _logger.LogInformation($"Success Rate: {(double)testSuite.PassedTests / testSuite.TotalTests * 100:F1}%");
+            _logger.LogInformation($"Total Duration: {testSuite.TotalDuration.TotalSeconds:F2} seconds");
             
             if (testSuite.FailedTests > 0)
             {

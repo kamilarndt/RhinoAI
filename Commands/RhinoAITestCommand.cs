@@ -2,112 +2,85 @@ using System;
 using System.Threading.Tasks;
 using Rhino;
 using Rhino.Commands;
-using Rhino.Input;
-using RhinoAI.Development;
 using RhinoAI.Core;
 
 namespace RhinoAI.Commands
 {
-    /// <summary>
-    /// Test command for RhinoAI plugin functionality validation
-    /// </summary>
+    [CommandStyle(Style.ScriptRunner)]
     public class RhinoAITestCommand : Command
     {
-        private readonly SimpleLogger _logger;
-
-        public RhinoAITestCommand()
-        {
-            _logger = new SimpleLogger("RhinoAITest", LogLevel.Information);
-        }
-
         public override string EnglishName => "RhinoAITest";
 
         protected override Result RunCommand(RhinoDoc doc, RunMode mode)
         {
             try
             {
-                _logger.LogInformation("Starting RhinoAI Test Command");
-
-                // Get test options from user
-                var testOptions = new GetOption();
-                testOptions.SetCommandPrompt("Select test to run");
-                testOptions.AddOption("All");
-                testOptions.AddOption("Core");
-                testOptions.AddOption("NLP");
-                testOptions.AddOption("Integration");
-                testOptions.AddOption("Performance");
-                testOptions.AddOption("UI");
-
-                var result = testOptions.Get();
-                if (result != GetResult.Option)
+                RhinoApp.WriteLine("🚀 Starting RhinoAI Complex Geometry Tests");
+                
+                var plugin = RhinoAIPlugin.Instance;
+                if (plugin?.AIManager == null)
                 {
-                    return Result.Cancel;
+                    RhinoApp.WriteLine("❌ Error: RhinoAI plugin not properly initialized");
+                    return Result.Failure;
                 }
 
-                var selectedTest = testOptions.Option().EnglishName;
+                // Run tests
+                Task.Run(async () => await RunComplexTests(plugin.AIManager));
                 
-                // Run tests asynchronously
-                Task.Run(async () =>
-                {
-                    try
-                    {
-                        var testFramework = new TestingFramework();
-                        TestSuite testSuite;
-
-                        switch (selectedTest)
-                        {
-                            case "All":
-                                testSuite = await testFramework.RunAllTestsAsync();
-                                break;
-                            default:
-                                RhinoApp.WriteLine($"Running {selectedTest} tests...");
-                                testSuite = await testFramework.RunAllTestsAsync(); // For now, run all
-                                break;
-                        }
-
-                        // Display results
-                        DisplayTestResults(testSuite);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError($"Test execution failed: {ex.Message}");
-                        RhinoApp.WriteLine($"Test execution failed: {ex.Message}");
-                    }
-                });
-
-                RhinoApp.WriteLine("Tests are running in the background. Check the command line for results.");
+                RhinoApp.WriteLine("✅ Test execution started. Check the command line for progress.");
                 return Result.Success;
             }
             catch (Exception ex)
             {
-                _logger.LogError($"RhinoAI Test Command failed: {ex.Message}");
-                RhinoApp.WriteLine($"Error: {ex.Message}");
+                RhinoApp.WriteLine($"❌ Error starting tests: {ex.Message}");
                 return Result.Failure;
             }
         }
 
-        private void DisplayTestResults(TestSuite testSuite)
+        private async Task RunComplexTests(AIManager aiManager)
         {
-            RhinoApp.WriteLine("=== RHINOAI TEST RESULTS ===");
-            RhinoApp.WriteLine($"Total Tests: {testSuite.TotalTests}");
-            RhinoApp.WriteLine($"Passed: {testSuite.PassedTests}");
-            RhinoApp.WriteLine($"Failed: {testSuite.FailedTests}");
-            RhinoApp.WriteLine($"Success Rate: {testSuite.SuccessRate:F1}%");
-            RhinoApp.WriteLine($"Duration: {testSuite.TotalDuration.TotalSeconds:F2} seconds");
-
-            if (testSuite.FailedTests > 0)
+            var testCommands = new[]
             {
-                RhinoApp.WriteLine("\nFailed Tests:");
-                foreach (var failedTest in testSuite.TestResults)
-                {
-                    if (!failedTest.Success)
-                    {
-                        RhinoApp.WriteLine($"  - {failedTest.TestName}: {failedTest.ErrorMessage}");
-                    }
-                }
-            }
+                "Create a sphere with radius 10 units at the origin",
+                "Make a box that is 20 units wide, 15 units deep, and 8 units tall",
+                "Generate a cylinder with radius 5 and height 12",
+                "Create a torus with major radius 15 and minor radius 3",
+                "Make a cone with base radius 8, top radius 2, and height 20",
+                "Generate an ellipsoid with radii 10, 6, and 4 units",
+                "Create two overlapping spheres with radius 8, then subtract the second from the first",
+                "Make a box 15x15x15 and a cylinder radius 6 height 20, then intersect them",
+                "Create a rectangular array of 3x2 spheres, each with radius 2, spaced 6 units apart",
+                "Make a linear array of 5 boxes along the X axis, each box is 2x2x2 units"
+            };
 
-            RhinoApp.WriteLine("=== END TEST RESULTS ===");
+            RhinoApp.WriteLine("\n🧪 RHINOAI COMPLEX GEOMETRY TEST SUITE");
+            
+            foreach (var command in testCommands)
+            {
+                await ExecuteAndReportTest(command, aiManager);
+                await Task.Delay(2000); // 2 second pause between tests
+            }
+            
+            RhinoApp.WriteLine("\n🏁 ALL TESTS COMPLETED");
+        }
+
+        private async Task ExecuteAndReportTest(string command, AIManager aiManager)
+        {
+            RhinoApp.WriteLine($"\n🔄 Testing: {command}");
+            
+            try
+            {
+                var startTime = DateTime.Now;
+                var result = await aiManager.ProcessNaturalLanguageAsync(command);
+                var endTime = DateTime.Now;
+                var duration = (endTime - startTime).TotalMilliseconds;
+
+                RhinoApp.WriteLine($"✅ SUCCESS ({duration:F0}ms): {result}");
+            }
+            catch (Exception ex)
+            {
+                RhinoApp.WriteLine($"❌ FAILED: {ex.Message}");
+            }
         }
     }
 } 
