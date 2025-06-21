@@ -1,0 +1,89 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net7.0-windows</TargetFramework>
+    <OutputType>Library</OutputType>
+    <PlatformTarget>x64</PlatformTarget>
+    <UseWindowsForms>true</UseWindowsForms>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <LangVersion>11.0</LangVersion>
+    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+    
+    <RootNamespace>RhinoAI</RootNamespace>
+    <AssemblyName>RhinoAI</AssemblyName>
+    <Description>AI-powered assistant for Rhino 3D with MCP integration</Description>
+    <Company>RhinoAI Development</Company>
+    <Product>RhinoAI</Product>
+    <Copyright>Copyright © RhinoAI Development 2024</Copyright>
+  </PropertyGroup>
+
+  <!-- Debug Configuration -->
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <StartAction>Program</StartAction>
+    <StartProgram>C:\Program Files\Rhino 8\System\Rhino.exe</StartProgram>
+    <StartArguments>/nosplash</StartArguments>
+  </PropertyGroup>
+
+  <!-- Release Configuration -->
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <DebugType>pdbonly</DebugType>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+  </PropertyGroup>
+
+  <!-- Package References -->
+  <ItemGroup>
+    <PackageReference Include="RhinoCommon" Version="8.0.23304.09001" />
+    <PackageReference Include="Grasshopper" Version="8.0.23304.09001" />
+    <PackageReference Include="System.Text.Json" Version="7.0.0" />
+
+    <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="7.0.0" />
+  </ItemGroup>
+
+  <!-- Embedded Resources -->
+  <ItemGroup>
+    <EmbeddedResource Include="**/*.ico" />
+    <EmbeddedResource Include="**/*.png" />
+    <EmbeddedResource Include="**/*.jpg" />
+    <EmbeddedResource Include="**/*.xaml" />
+    <EmbeddedResource Include="**/*.resx" />
+  </ItemGroup>
+
+  <!-- Exclude Resources folder from compilation -->
+  <ItemGroup>
+    <Compile Remove="Resources/**" />
+    <None Include="Resources/**" />
+  </ItemGroup>
+
+  <!-- Create .rhp file from .dll -->
+  <Target Name="CreateRhpFile" AfterTargets="Build">
+    <Copy SourceFiles="$(OutputPath)$(MSBuildProjectName).dll" 
+          DestinationFiles="$(OutputPath)$(MSBuildProjectName).rhp" />
+  </Target>
+
+  <!-- Copy to Rhino Plugins folder for debugging -->
+  <Target Name="CopyToRhinoPluginsFolder" AfterTargets="CreateRhpFile" Condition="'$(Configuration)'=='Debug'">
+    <PropertyGroup>
+      <RhinoPluginsPath>$(APPDATA)\McNeel\Rhinoceros\8.0\Plug-ins</RhinoPluginsPath>
+      <PluginFolder>$(RhinoPluginsPath)\$(MSBuildProjectName)</PluginFolder>
+    </PropertyGroup>
+    <MakeDir Directories="$(PluginFolder)" />
+    <Copy SourceFiles="$(OutputPath)$(MSBuildProjectName).rhp" 
+          DestinationFolder="$(PluginFolder)" />
+    <Copy SourceFiles="$(OutputPath)$(MSBuildProjectName).pdb" 
+          DestinationFolder="$(PluginFolder)" 
+          Condition="Exists('$(OutputPath)$(MSBuildProjectName).pdb')" />
+  </Target>
+</Project> 

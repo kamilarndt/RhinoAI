@@ -1,0 +1,11 @@
+Phase,Component,Priority,Estimated_Days,Dependencies,Key_Features
+Phase 1,Intent Classifier,High,5,None,"Hierarchical classification, confidence scoring"
+Phase 1,Context Manager,High,3,Intent Classifier,"Conversation history, scene awareness"
+Phase 1,Enhanced Error Handling,Medium,2,None,"Retry mechanisms, graceful degradation"
+Phase 2,Parameter Extractor,High,7,"Intent Classifier, Context Manager","NER capabilities, unit conversion"
+Phase 2,Semantic Validator,High,4,Parameter Extractor,"CAD constraints, geometric validation"
+Phase 2,Robust JSON Parser,Medium,3,None,"Malformed JSON recovery, streaming"
+Phase 2,MCP Integration,High,8,All previous components,"Bi-directional communication, real-time"
+Phase 3,Performance Optimization,Low,4,Core functionality complete,"Caching, async processing, API optimization"
+Phase 3,Advanced Fallbacks,Medium,3,"Error Handling, Validation","Multi-level fallbacks, user guidance"
+Phase 3,Comprehensive Testing,High,5,All components,"Unit tests, integration tests, performance"
