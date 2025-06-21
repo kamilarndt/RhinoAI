@@ -70,7 +70,9 @@
   <ItemGroup>
     <Compile Include="RhinoAIPlugin.cs" />
     <Compile Include="AI\*.cs" />
+    <Compile Include="Commands\*.cs" />
     <Compile Include="Core\*.cs" />
+    <Compile Include="Development\*.cs" />
     <Compile Include="Integration\*.cs" />
     <Compile Include="Models\*.cs" />
     <Compile Include="Properties\*.cs" />
