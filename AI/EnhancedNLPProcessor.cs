@@ -107,15 +107,27 @@ namespace RhinoAI.AI
                 "CreateSphere" => await CreateSphereAsync(parameters),
                 "CreateBox" => await CreateBoxAsync(parameters),
                 "CreateCylinder" => await CreateCylinderAsync(parameters),
+                "CreateTorus" => await CreateTorusAsync(parameters),
+                "CreateCone" => await CreateConeAsync(parameters),
+                "CreateLine" => await CreateLineAsync(parameters),
+                "CreateCircle" => await CreateCircleAsync(parameters),
+                "CreateArc" => await CreateArcAsync(parameters),
+                "CreatePolyline" => await CreatePolylineAsync(parameters),
                 "CreateSphereArray" => await CreateSphereArrayAsync(parameters),
                 "CreateBoxArray" => await CreateBoxArrayAsync(parameters),
+                "CreateCircularArray" => await CreateCircularArrayAsync(parameters),
                 "MoveObjects" => await MoveObjectsAsync(parameters),
                 "ScaleObjects" => await ScaleObjectsAsync(parameters),
+                "RotateObjects" => await RotateObjectsAsync(parameters),
+                "MirrorObjects" => await MirrorObjectsAsync(parameters),
+                "CopyObjects" => await CopyObjectsAsync(parameters),
                 "BooleanUnion" => await BooleanUnionAsync(parameters),
                 "BooleanDifference" => await BooleanDifferenceAsync(parameters),
                 "BooleanIntersection" => await BooleanIntersectionAsync(parameters),
                 "ExplodeObjects" => await ExplodeObjectsAsync(parameters),
                 "JoinObjects" => await JoinObjectsAsync(parameters),
+                "FilletEdges" => await FilletEdgesAsync(parameters),
+                "ChamferEdges" => await ChamferEdgesAsync(parameters),
                 _ => ProcessingResult.Error($"Command '{template.CommandName}' is not implemented")
             };
         }
@@ -278,6 +290,322 @@ namespace RhinoAI.AI
             catch (Exception ex)
             {
                 return Task.FromResult(ProcessingResult.Error($"Error creating box array: {ex.Message}"));
+            }
+        }
+
+        private Task<ProcessingResult> CreateTorusAsync(Dictionary<string, object> parameters)
+        {
+            try
+            {
+                var center = _parameterExtractor.GetPoint3d(parameters, "center", Point3d.Origin);
+                var majorRadius = _parameterExtractor.GetDouble(parameters, "major_radius", 5.0);
+                var minorRadius = _parameterExtractor.GetDouble(parameters, "minor_radius", 2.0);
+                var name = _parameterExtractor.GetString(parameters, "name", "");
+                var color = GetColorParameter(parameters, "color");
+
+                var torus = new Torus(Plane.WorldXY, majorRadius, minorRadius);
+                
+                // Move to center by creating at the right position
+                var plane = new Plane(center, Vector3d.ZAxis);
+                torus = new Torus(plane, majorRadius, minorRadius);
+                
+                var brep = torus.ToBrep();
+
+                if (brep?.IsValid == true)
+                {
+                    var attributes = new ObjectAttributes();
+                    
+                    if (color.HasValue)
+                    {
+                        attributes.ObjectColor = color.Value;
+                        attributes.ColorSource = ObjectColorSource.ColorFromObject;
+                    }
+
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        attributes.Name = name;
+                    }
+
+                    var id = RhinoDoc.ActiveDoc.Objects.AddBrep(brep, attributes);
+                    
+                    if (id != Guid.Empty)
+                    {
+                        _currentContext.AddCreatedObject(id, "Torus", parameters);
+                        RhinoDoc.ActiveDoc.Objects.Select(id);
+                        RhinoDoc.ActiveDoc.Views.Redraw();
+
+                        var colorName = color.HasValue ? GetColorName(color.Value) : "default";
+                        var nameInfo = !string.IsNullOrEmpty(name) ? $" named '{name}'" : "";
+                        
+                        return Task.FromResult(ProcessingResult.Success($"Created torus in {colorName}{nameInfo} at {center} with major radius {majorRadius:F2} and minor radius {minorRadius:F2}"));
+                    }
+                }
+
+                return Task.FromResult(ProcessingResult.Error("Failed to create torus"));
+            }
+            catch (Exception ex)
+            {
+                return Task.FromResult(ProcessingResult.Error($"Error creating torus: {ex.Message}"));
+            }
+        }
+
+        private Task<ProcessingResult> CreateConeAsync(Dictionary<string, object> parameters)
+        {
+            try
+            {
+                var center = _parameterExtractor.GetPoint3d(parameters, "center", Point3d.Origin);
+                var radius = _parameterExtractor.GetDouble(parameters, "radius", 1.0);
+                var height = _parameterExtractor.GetDouble(parameters, "height", 3.0);
+                var name = _parameterExtractor.GetString(parameters, "name", "");
+                var color = GetColorParameter(parameters, "color");
+
+                var basePlane = new Plane(center, Vector3d.ZAxis);
+                var cone = new Cone(basePlane, height, radius);
+                var brep = cone.ToBrep(true); // true = cap the base
+
+                if (brep?.IsValid == true)
+                {
+                    var attributes = new ObjectAttributes();
+                    
+                    if (color.HasValue)
+                    {
+                        attributes.ObjectColor = color.Value;
+                        attributes.ColorSource = ObjectColorSource.ColorFromObject;
+                    }
+
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        attributes.Name = name;
+                    }
+
+                    var id = RhinoDoc.ActiveDoc.Objects.AddBrep(brep, attributes);
+                    
+                    if (id != Guid.Empty)
+                    {
+                        _currentContext.AddCreatedObject(id, "Cone", parameters);
+                        RhinoDoc.ActiveDoc.Objects.Select(id);
+                        RhinoDoc.ActiveDoc.Views.Redraw();
+
+                        var colorName = color.HasValue ? GetColorName(color.Value) : "default";
+                        var nameInfo = !string.IsNullOrEmpty(name) ? $" named '{name}'" : "";
+                        
+                        return Task.FromResult(ProcessingResult.Success($"Created cone in {colorName}{nameInfo} at {center} with radius {radius:F2} and height {height:F2}"));
+                    }
+                }
+
+                return Task.FromResult(ProcessingResult.Error("Failed to create cone"));
+            }
+            catch (Exception ex)
+            {
+                return Task.FromResult(ProcessingResult.Error($"Error creating cone: {ex.Message}"));
+            }
+        }
+
+        private Task<ProcessingResult> CreateLineAsync(Dictionary<string, object> parameters)
+        {
+            try
+            {
+                var start = _parameterExtractor.GetPoint3d(parameters, "start", Point3d.Origin);
+                var end = _parameterExtractor.GetPoint3d(parameters, "end", new Point3d(10, 0, 0));
+                var name = _parameterExtractor.GetString(parameters, "name", "");
+                var color = GetColorParameter(parameters, "color");
+
+                var line = new Line(start, end);
+                var curve = line.ToNurbsCurve();
+
+                if (curve?.IsValid == true)
+                {
+                    var attributes = new ObjectAttributes();
+                    
+                    if (color.HasValue)
+                    {
+                        attributes.ObjectColor = color.Value;
+                        attributes.ColorSource = ObjectColorSource.ColorFromObject;
+                    }
+
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        attributes.Name = name;
+                    }
+
+                    var id = RhinoDoc.ActiveDoc.Objects.AddCurve(curve, attributes);
+                    
+                    if (id != Guid.Empty)
+                    {
+                        _currentContext.AddCreatedObject(id, "Line", parameters);
+                        RhinoDoc.ActiveDoc.Objects.Select(id);
+                        RhinoDoc.ActiveDoc.Views.Redraw();
+
+                        var colorName = color.HasValue ? GetColorName(color.Value) : "default";
+                        var nameInfo = !string.IsNullOrEmpty(name) ? $" named '{name}'" : "";
+                        
+                        return Task.FromResult(ProcessingResult.Success($"Created line in {colorName}{nameInfo} from {start} to {end}"));
+                    }
+                }
+
+                return Task.FromResult(ProcessingResult.Error("Failed to create line"));
+            }
+            catch (Exception ex)
+            {
+                return Task.FromResult(ProcessingResult.Error($"Error creating line: {ex.Message}"));
+            }
+        }
+
+        private Task<ProcessingResult> CreateCircleAsync(Dictionary<string, object> parameters)
+        {
+            try
+            {
+                var center = _parameterExtractor.GetPoint3d(parameters, "center", Point3d.Origin);
+                var radius = _parameterExtractor.GetDouble(parameters, "radius", 1.0);
+                var name = _parameterExtractor.GetString(parameters, "name", "");
+                var color = GetColorParameter(parameters, "color");
+
+                var plane = new Plane(center, Vector3d.ZAxis);
+                var circle = new Circle(plane, radius);
+                var curve = circle.ToNurbsCurve();
+
+                if (curve?.IsValid == true)
+                {
+                    var attributes = new ObjectAttributes();
+                    
+                    if (color.HasValue)
+                    {
+                        attributes.ObjectColor = color.Value;
+                        attributes.ColorSource = ObjectColorSource.ColorFromObject;
+                    }
+
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        attributes.Name = name;
+                    }
+
+                    var id = RhinoDoc.ActiveDoc.Objects.AddCurve(curve, attributes);
+                    
+                    if (id != Guid.Empty)
+                    {
+                        _currentContext.AddCreatedObject(id, "Circle", parameters);
+                        RhinoDoc.ActiveDoc.Objects.Select(id);
+                        RhinoDoc.ActiveDoc.Views.Redraw();
+
+                        var colorName = color.HasValue ? GetColorName(color.Value) : "default";
+                        var nameInfo = !string.IsNullOrEmpty(name) ? $" named '{name}'" : "";
+                        
+                        return Task.FromResult(ProcessingResult.Success($"Created circle in {colorName}{nameInfo} at {center} with radius {radius:F2}"));
+                    }
+                }
+
+                return Task.FromResult(ProcessingResult.Error("Failed to create circle"));
+            }
+            catch (Exception ex)
+            {
+                return Task.FromResult(ProcessingResult.Error($"Error creating circle: {ex.Message}"));
+            }
+        }
+
+        private Task<ProcessingResult> CreateArcAsync(Dictionary<string, object> parameters)
+        {
+            try
+            {
+                var center = _parameterExtractor.GetPoint3d(parameters, "center", Point3d.Origin);
+                var radius = _parameterExtractor.GetDouble(parameters, "radius", 1.0);
+                var angle = _parameterExtractor.GetDouble(parameters, "angle", 90.0); // degrees
+                var name = _parameterExtractor.GetString(parameters, "name", "");
+                var color = GetColorParameter(parameters, "color");
+
+                var plane = new Plane(center, Vector3d.ZAxis);
+                var angleRadians = RhinoMath.ToRadians(angle);
+                var arc = new Arc(plane, radius, angleRadians);
+                var curve = arc.ToNurbsCurve();
+
+                if (curve?.IsValid == true)
+                {
+                    var attributes = new ObjectAttributes();
+                    
+                    if (color.HasValue)
+                    {
+                        attributes.ObjectColor = color.Value;
+                        attributes.ColorSource = ObjectColorSource.ColorFromObject;
+                    }
+
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        attributes.Name = name;
+                    }
+
+                    var id = RhinoDoc.ActiveDoc.Objects.AddCurve(curve, attributes);
+                    
+                    if (id != Guid.Empty)
+                    {
+                        _currentContext.AddCreatedObject(id, "Arc", parameters);
+                        RhinoDoc.ActiveDoc.Objects.Select(id);
+                        RhinoDoc.ActiveDoc.Views.Redraw();
+
+                        var colorName = color.HasValue ? GetColorName(color.Value) : "default";
+                        var nameInfo = !string.IsNullOrEmpty(name) ? $" named '{name}'" : "";
+                        
+                        return Task.FromResult(ProcessingResult.Success($"Created arc in {colorName}{nameInfo} at {center} with radius {radius:F2} and angle {angle:F1}°"));
+                    }
+                }
+
+                return Task.FromResult(ProcessingResult.Error("Failed to create arc"));
+            }
+            catch (Exception ex)
+            {
+                return Task.FromResult(ProcessingResult.Error($"Error creating arc: {ex.Message}"));
+            }
+        }
+
+        private Task<ProcessingResult> CreatePolylineAsync(Dictionary<string, object> parameters)
+        {
+            try
+            {
+                // Extract points from parameters - this would need more sophisticated parsing
+                var points = new List<Point3d> { Point3d.Origin, new Point3d(5, 0, 0), new Point3d(5, 5, 0), new Point3d(0, 5, 0) };
+                var closed = _parameterExtractor.GetString(parameters, "closed", "false").ToLower() == "true";
+                var name = _parameterExtractor.GetString(parameters, "name", "");
+                var color = GetColorParameter(parameters, "color");
+
+                var polyline = new Polyline(points);
+                if (closed) polyline.Add(points[0]); // Close the polyline
+                
+                var curve = polyline.ToNurbsCurve();
+
+                if (curve?.IsValid == true)
+                {
+                    var attributes = new ObjectAttributes();
+                    
+                    if (color.HasValue)
+                    {
+                        attributes.ObjectColor = color.Value;
+                        attributes.ColorSource = ObjectColorSource.ColorFromObject;
+                    }
+
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        attributes.Name = name;
+                    }
+
+                    var id = RhinoDoc.ActiveDoc.Objects.AddCurve(curve, attributes);
+                    
+                    if (id != Guid.Empty)
+                    {
+                        _currentContext.AddCreatedObject(id, "Polyline", parameters);
+                        RhinoDoc.ActiveDoc.Objects.Select(id);
+                        RhinoDoc.ActiveDoc.Views.Redraw();
+
+                        var colorName = color.HasValue ? GetColorName(color.Value) : "default";
+                        var nameInfo = !string.IsNullOrEmpty(name) ? $" named '{name}'" : "";
+                        var closedText = closed ? "closed" : "open";
+                        
+                        return Task.FromResult(ProcessingResult.Success($"Created {closedText} polyline in {colorName}{nameInfo} with {points.Count} points"));
+                    }
+                }
+
+                return Task.FromResult(ProcessingResult.Error("Failed to create polyline"));
+            }
+            catch (Exception ex)
+            {
+                return Task.FromResult(ProcessingResult.Error($"Error creating polyline: {ex.Message}"));
             }
         }
 
@@ -702,6 +1030,268 @@ namespace RhinoAI.AI
             catch (Exception ex)
             {
                 return Task.FromResult(ProcessingResult.Error($"Error joining objects: {ex.Message}"));
+            }
+        }
+
+        private Task<ProcessingResult> CreateCircularArrayAsync(Dictionary<string, object> parameters)
+        {
+            try
+            {
+                var center = _parameterExtractor.GetPoint3d(parameters, "center", Point3d.Origin);
+                var count = _parameterExtractor.GetInt(parameters, "count", 6);
+                var radius = _parameterExtractor.GetDouble(parameters, "radius", 5.0);
+                var selectedObjects = RhinoDoc.ActiveDoc.Objects.GetSelectedObjects(false, false);
+
+                if (selectedObjects?.Count() == 0)
+                {
+                    return Task.FromResult(ProcessingResult.Warning("No objects selected for circular array"));
+                }
+
+                var createdCount = 0;
+                var angleStep = 2 * Math.PI / count;
+
+                for (int i = 1; i < count; i++) // Start from 1 since original is at 0
+                {
+                    var angle = i * angleStep;
+                    var x = center.X + radius * Math.Cos(angle);
+                    var y = center.Y + radius * Math.Sin(angle);
+                    var arrayPoint = new Point3d(x, y, center.Z);
+                    
+                    var translation = arrayPoint - center;
+                    var transform = Transform.Translation(translation);
+
+                    foreach (var obj in selectedObjects)
+                    {
+                        var duplicate = RhinoDoc.ActiveDoc.Objects.Transform(obj.Id, transform, false);
+                        if (duplicate != Guid.Empty)
+                        {
+                            createdCount++;
+                        }
+                    }
+                }
+
+                RhinoDoc.ActiveDoc.Views.Redraw();
+                return Task.FromResult(ProcessingResult.Success($"Created circular array with {createdCount} objects around {center} with radius {radius:F2}"));
+            }
+            catch (Exception ex)
+            {
+                return Task.FromResult(ProcessingResult.Error($"Error creating circular array: {ex.Message}"));
+            }
+        }
+
+        private Task<ProcessingResult> RotateObjectsAsync(Dictionary<string, object> parameters)
+        {
+            try
+            {
+                var angle = _parameterExtractor.GetDouble(parameters, "angle", 90.0); // degrees
+                var axis = GetVector3dParameter(parameters, "axis", Vector3d.ZAxis);
+                var center = _parameterExtractor.GetPoint3d(parameters, "center", Point3d.Origin);
+                var selectedObjects = RhinoDoc.ActiveDoc.Objects.GetSelectedObjects(false, false);
+
+                if (selectedObjects?.Count() == 0)
+                {
+                    return Task.FromResult(ProcessingResult.Warning("No objects selected to rotate"));
+                }
+
+                var angleRadians = RhinoMath.ToRadians(angle);
+                var transform = Transform.Rotation(angleRadians, axis, center);
+                var rotatedCount = 0;
+
+                foreach (var obj in selectedObjects)
+                {
+                    if (RhinoDoc.ActiveDoc.Objects.Transform(obj.Id, transform, true) != Guid.Empty)
+                    {
+                        rotatedCount++;
+                    }
+                }
+
+                RhinoDoc.ActiveDoc.Views.Redraw();
+                return Task.FromResult(ProcessingResult.Success($"Rotated {rotatedCount} object(s) by {angle:F1}° around {axis} at {center}"));
+            }
+            catch (Exception ex)
+            {
+                return Task.FromResult(ProcessingResult.Error($"Error rotating objects: {ex.Message}"));
+            }
+        }
+
+        private Task<ProcessingResult> MirrorObjectsAsync(Dictionary<string, object> parameters)
+        {
+            try
+            {
+                var planeOrigin = _parameterExtractor.GetPoint3d(parameters, "plane_origin", Point3d.Origin);
+                var planeNormal = GetVector3dParameter(parameters, "plane_normal", Vector3d.XAxis);
+                var selectedObjects = RhinoDoc.ActiveDoc.Objects.GetSelectedObjects(false, false);
+
+                if (selectedObjects?.Count() == 0)
+                {
+                    return Task.FromResult(ProcessingResult.Warning("No objects selected to mirror"));
+                }
+
+                var mirrorPlane = new Plane(planeOrigin, planeNormal);
+                var transform = Transform.Mirror(mirrorPlane);
+                var mirroredCount = 0;
+
+                foreach (var obj in selectedObjects)
+                {
+                    var mirrored = RhinoDoc.ActiveDoc.Objects.Transform(obj.Id, transform, false);
+                    if (mirrored != Guid.Empty)
+                    {
+                        mirroredCount++;
+                    }
+                }
+
+                RhinoDoc.ActiveDoc.Views.Redraw();
+                return Task.FromResult(ProcessingResult.Success($"Mirrored {mirroredCount} object(s) across plane at {planeOrigin} with normal {planeNormal}"));
+            }
+            catch (Exception ex)
+            {
+                return Task.FromResult(ProcessingResult.Error($"Error mirroring objects: {ex.Message}"));
+            }
+        }
+
+        private Task<ProcessingResult> CopyObjectsAsync(Dictionary<string, object> parameters)
+        {
+            try
+            {
+                var translation = GetVector3dParameter(parameters, "translation", new Vector3d(5, 0, 0));
+                var copies = _parameterExtractor.GetInt(parameters, "copies", 1);
+                var selectedObjects = RhinoDoc.ActiveDoc.Objects.GetSelectedObjects(false, false);
+
+                if (selectedObjects?.Count() == 0)
+                {
+                    return Task.FromResult(ProcessingResult.Warning("No objects selected to copy"));
+                }
+
+                var copiedCount = 0;
+
+                for (int i = 1; i <= copies; i++)
+                {
+                    var transform = Transform.Translation(translation * i);
+                    
+                    foreach (var obj in selectedObjects)
+                    {
+                        var copy = RhinoDoc.ActiveDoc.Objects.Transform(obj.Id, transform, false);
+                        if (copy != Guid.Empty)
+                        {
+                            copiedCount++;
+                        }
+                    }
+                }
+
+                RhinoDoc.ActiveDoc.Views.Redraw();
+                return Task.FromResult(ProcessingResult.Success($"Created {copiedCount} copies with translation {translation}"));
+            }
+            catch (Exception ex)
+            {
+                return Task.FromResult(ProcessingResult.Error($"Error copying objects: {ex.Message}"));
+            }
+        }
+
+        private Task<ProcessingResult> FilletEdgesAsync(Dictionary<string, object> parameters)
+        {
+            try
+            {
+                var radius = _parameterExtractor.GetDouble(parameters, "radius", 0.5);
+                var selectedObjects = RhinoDoc.ActiveDoc.Objects.GetSelectedObjects(false, false);
+
+                if (selectedObjects?.Count() == 0)
+                {
+                    return Task.FromResult(ProcessingResult.Warning("No objects selected for filleting"));
+                }
+
+                var filletedCount = 0;
+
+                foreach (var obj in selectedObjects)
+                {
+                    if (obj.Geometry is Brep brep)
+                    {
+                        // Get all edges that are not smooth manifold edges
+                        var edges = new List<BrepEdge>();
+                        foreach (var edge in brep.Edges)
+                        {
+                            if (!edge.IsSmoothManifoldEdge)
+                            {
+                                edges.Add(edge);
+                            }
+                        }
+                        
+                        if (edges.Count > 0)
+                        {
+                            var filletBreps = Brep.CreateFilletEdges(brep, edges.Select(e => e.EdgeIndex), 
+                                                                    Enumerable.Repeat(radius, edges.Count), 
+                                                                    Enumerable.Repeat(radius, edges.Count), 
+                                                                    BlendType.Fillet, RailType.RollingBall, 
+                                                                    RhinoDoc.ActiveDoc.ModelAbsoluteTolerance);
+                            
+                            if (filletBreps?.Length > 0 && filletBreps[0]?.IsValid == true)
+                            {
+                                RhinoDoc.ActiveDoc.Objects.Replace(obj.Id, filletBreps[0]);
+                                filletedCount++;
+                            }
+                        }
+                    }
+                }
+
+                RhinoDoc.ActiveDoc.Views.Redraw();
+                return Task.FromResult(ProcessingResult.Success($"Applied fillet with radius {radius:F2} to {filletedCount} object(s)"));
+            }
+            catch (Exception ex)
+            {
+                return Task.FromResult(ProcessingResult.Error($"Error filleting edges: {ex.Message}"));
+            }
+        }
+
+        private Task<ProcessingResult> ChamferEdgesAsync(Dictionary<string, object> parameters)
+        {
+            try
+            {
+                var distance = _parameterExtractor.GetDouble(parameters, "distance", 0.5);
+                var selectedObjects = RhinoDoc.ActiveDoc.Objects.GetSelectedObjects(false, false);
+
+                if (selectedObjects?.Count() == 0)
+                {
+                    return Task.FromResult(ProcessingResult.Warning("No objects selected for chamfering"));
+                }
+
+                var chamferedCount = 0;
+
+                foreach (var obj in selectedObjects)
+                {
+                    if (obj.Geometry is Brep brep)
+                    {
+                        // Get all edges that are not smooth manifold edges
+                        var edges = new List<BrepEdge>();
+                        foreach (var edge in brep.Edges)
+                        {
+                            if (!edge.IsSmoothManifoldEdge)
+                            {
+                                edges.Add(edge);
+                            }
+                        }
+                        
+                        if (edges.Count > 0)
+                        {
+                            var chamferBreps = Brep.CreateFilletEdges(brep, edges.Select(e => e.EdgeIndex), 
+                                                                     Enumerable.Repeat(distance, edges.Count), 
+                                                                     Enumerable.Repeat(distance, edges.Count), 
+                                                                     BlendType.Chamfer, RailType.RollingBall, 
+                                                                     RhinoDoc.ActiveDoc.ModelAbsoluteTolerance);
+                            
+                            if (chamferBreps?.Length > 0 && chamferBreps[0]?.IsValid == true)
+                            {
+                                RhinoDoc.ActiveDoc.Objects.Replace(obj.Id, chamferBreps[0]);
+                                chamferedCount++;
+                            }
+                        }
+                    }
+                }
+
+                RhinoDoc.ActiveDoc.Views.Redraw();
+                return Task.FromResult(ProcessingResult.Success($"Applied chamfer with distance {distance:F2} to {chamferedCount} object(s)"));
+            }
+            catch (Exception ex)
+            {
+                return Task.FromResult(ProcessingResult.Error($"Error chamfering edges: {ex.Message}"));
             }
         }
 
